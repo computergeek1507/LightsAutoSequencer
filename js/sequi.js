@@ -664,6 +664,9 @@
         G.static = c; G.blocks = blocks; G.sec = sec; G.x = x; G.W = W; G.H = H; G.dpr = dpr;
     }
 
+    // the grid is drawn from the theme's colours: redraw it when they change
+    document.addEventListener('xl:theme', () => { G.key = null; S.dirty = true; });
+
     function drawGrid(song, t, cur) {
         if ($('gridPanel').hidden || !$('gridWrap').clientWidth) return;
         const sec = cur || (G.sec && song.sections.find(s => s.id === G.sec.id)) || song.sections[0];
@@ -836,6 +839,7 @@
         S.plan = JSON.parse(S.history.pop());
         renderPlan();
         regenerate();
+        document.dispatchEvent(new CustomEvent('xl:changed'));
         setPlanStatus('Undone.');
     }
     function redo() {
@@ -844,6 +848,7 @@
         S.plan = JSON.parse(S.future.pop());
         renderPlan();
         regenerate();
+        document.dispatchEvent(new CustomEvent('xl:changed'));
         setPlanStatus('Redone.');
     }
     $('planUndo').addEventListener('click', undo);

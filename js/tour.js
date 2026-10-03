@@ -32,7 +32,7 @@
         { tab: 'seq', el: () => $('tStrip'), need: 'your show', title: 'Move around the song',
           text: 'Jump to the previous or next part, loop the part you are in, or slow down to ½ speed to check fast effects.' },
         { tab: 'seq', el: () => $('saveProj'), need: 'a song', title: 'Save your work',
-          text: 'Save project (Ctrl+S) keeps the beat grid, your parts, the words and all the lights in a small file. Open project… brings it all back, and finds the song by itself.' },
+          text: 'Save project (Ctrl+S) keeps the beat grid, your parts, the words and all the lights in a small file. Tick Auto-save to save after every change. Projects ▾ switches between your projects (asking to save first), and each one finds its song by itself.' },
         { tab: 'seq', el: () => $('xsqPanel'), need: 'your show', title: 'Into xLights',
           text: 'Save into show folder (or Download .xsq), then open it in xLights and render. Beats, bars, song parts and words come along as timing tracks. That\'s it: have fun!' },
     ];

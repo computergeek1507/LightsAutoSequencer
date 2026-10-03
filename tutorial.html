@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How to use Lights Auto Sequencer</title>
+<script src="js/theme.js"></script>
 <link rel="stylesheet" href="css/style.css">
 <style>
   .guide { max-width: 860px; margin: 0 auto; padding: 8px 16px 48px; line-height: 1.6; }
@@ -25,7 +26,10 @@
 </head>
 <body>
 <header class="topbar">
-  <h1><a href="./" style="color:inherit;text-decoration:none">Lights Auto Sequencer</a> <span class="sub">how to use it</span></h1>
+  <div class="topbar-row">
+    <h1><a href="./" style="color:inherit;text-decoration:none">Lights Auto Sequencer</a> <span class="sub">how to use it</span></h1>
+    <nav class="help-links"><label class="theme-sel" title="Colours of the page"><span class="sr">Theme</span><select id="themeSel" aria-label="Theme"><option value="auto">🖥 Auto</option><option value="light">☀ Light</option><option value="dark">🌙 Dark</option></select></label></nav>
+  </div>
 </header>
 
 <main class="guide">
@@ -146,8 +150,16 @@
     <li id="save">
       <h3>Save your work</h3>
       <p><b>Save project</b> (<kbd>Ctrl</kbd>+<kbd>S</kbd>) writes a small <code>.lightseq.json</code> file with the beat grid, your parts,
-      the words and the whole light plan. Open it later with <b>Open project…</b>; the app finds the song again by
-      itself.</p>
+      the words and the whole light plan. After that, Save writes back to the same file.</p>
+      <ul>
+        <li><b>Auto-save</b>: tick it and every change saves by itself a moment later.</li>
+        <li><b>Projects ▾</b> lists your recent projects (and, with <b>Choose projects folder…</b>, every project in
+          that folder). Click one to switch; if you have unsaved changes it asks <i>Save / Don't save / Cancel</i> first.
+          Recent projects also show on the start screen.</li>
+        <li>Opening a project finds its song by itself. The browser asks once per visit before the page may read a
+          file again: press <b>Open</b> on the note at the top, and in Chrome or Edge choose <b>Allow on every
+          visit</b> so it stops asking.</li>
+      </ul>
     </li>
     <li id="xlights">
       <h3>Into xLights</h3>
@@ -159,6 +171,11 @@
 
   <h2 id="faq">Questions and fixes</h2>
   <dl>
+    <dt>It keeps asking where the song is.</dt>
+    <dd>Choose the song once (or <b>Pick your music folder…</b>); after that the project remembers it. If a note at
+      the top says the browser wants to allow it, press <b>Open</b> and pick <b>Allow on every visit</b>.</dd>
+    <dt>Can I use a dark page?</dt>
+    <dd>Yes: the menu at the top right switches between Auto (follows your computer), Light and Dark.</dd>
     <dt>Is my music or show uploaded anywhere?</dt>
     <dd>No. Everything runs in your browser. Only the voice and speech models are downloaded (once).</dd>
     <dt>The clicks don't match the drums.</dt>

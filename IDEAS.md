@@ -212,6 +212,13 @@ hosting account) is his to do; I can prepare everything up to that point.
 
 ## Done
 
+- **2026-10-03:** Projects: why opening one always asked for the MP3 (the page remembered the
+  song, but the browser only re-allows reading it during a click, and the file box doesn't
+  count), now one *Open* click (and *Allow on every visit* in Chrome/Edge stops it asking).
+  Projects open through the picker so Save writes back in place; *Projects ▾* switcher
+  (recent projects + a projects folder; also on the start screen); Save / Don't save /
+  Cancel before switching or loading another song; *Auto-save*; Undo/Redo now count as
+  changes. Dark mode: Auto / Light / Dark menu (app and guide).
 - **2026-10-03:** Ready for other people's shows (tested on the vendor "Wizards in Winter"
   traditional layout, 155 models, 160 groups):
   - Preview draws circles, icicles (with height and shear, so peak icicles hang straight),

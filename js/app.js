@@ -76,7 +76,10 @@
     }
 
     async function loadFile(file, handle) {
-        if (/\.json$/i.test(file.name)) { await openProjectFile(file); return; }
+        if (/\.json$/i.test(file.name)) { if (await confirmLeave()) await openProjectFile(file, handle); return; }
+        // a different song (not the one a project being opened is waiting for) replaces the work
+        if (!pendingProject && state.buffer && !(await confirmLeave())) return;
+        if (!pendingProject) state.projectHandle = null;
         stop();
         state.fileName = file.name.replace(/\.[^.]+$/, '');
         state.fileFull = file.name;
@@ -124,21 +127,29 @@
 
     // Find the project's song without asking where it is: the handle saved
     // when it was opened, else the music folder, else the show folder.
+    // Returns { handle, how } when it can be read now, { handle, needsClick }
+    // when the browser knows the file but wants a click to allow reading it
+    // again (once per visit, unless "Allow on every visit" was chosen), or null.
     async function findProjectSong(p, mayAsk) {
         const want = p.song || {};
+        let waiting = null;
         const saved = want.hash && await Show.kvGet(songKey(want.hash));
-        if (saved && await canRead(saved, mayAsk)) return { handle: saved, how: 'remembered' };
-        if (!want.file) return null;
-        for (const [key, label] of [['musicFolder', 'your music folder'], ['folder', 'your show folder']]) {
+        if (saved) {
+            if (await canRead(saved, mayAsk)) return { handle: saved, how: 'remembered' };
+            waiting = { handle: saved, needsClick: true };
+        }
+        if (!want.file) return waiting;
+        for (const [key, label] of [['musicFolder', 'your music folder'], ['projectsFolder', 'your projects folder'], ['folder', 'your show folder']]) {
             const dir = await Show.kvGet(key);
-            if (!dir || !(await canRead(dir, mayAsk))) continue;
+            if (!dir) continue;
+            if (!(await canRead(dir, mayAsk))) { if (!waiting) waiting = { dir, label, needsClick: true }; continue; }
             const h = await findInFolder(dir, want.file);
             if (h) {
                 const f = await h.getFile();
                 if (!want.size || f.size === want.size) return { handle: h, how: label };
             }
         }
-        return null;
+        return waiting;
     }
 
     async function pickMusicFolder() {
@@ -1485,6 +1496,7 @@
     }
 
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+    document.addEventListener('xl:theme', () => { if (state.buffer) draw(); });
 
     // Hook for testing from the console: XLWeb.loadUrl('song.mp3')
     // ---------- project files ----------
@@ -1498,6 +1510,7 @@
     state.projectDirty = false;
     state.projectHandle = null;
     let pendingProject = null;
+    let pendingProjectHandle = null;
     let restoring = false;
 
     function setProjStatus(msg) { $('projStatus').textContent = msg; }
@@ -1506,7 +1519,12 @@
         if (restoring || !state.buffer) return;
         state.projectDirty = true;
         setProjStatus('Unsaved changes');
+        if (autoSaveOn()) {
+            clearTimeout(markDirty.t);
+            markDirty.t = setTimeout(() => { if (state.projectDirty && autoSaveOn()) saveProject(false, true); }, 1500);
+        }
     }
+    const autoSaveOn = () => $('autoSave').checked;
     document.addEventListener('xl:changed', markDirty);
     document.addEventListener('xl:lyrics', markDirty);
 
@@ -1546,30 +1564,44 @@
         };
     }
 
-    async function saveProject(saveAs) {
-        if (!state.buffer) return;
-        const text = JSON.stringify(projectData(), null, 1);
+    // auto: an auto-save. It never opens a dialog or downloads; if the file
+    // can't be written without a click, it says so and waits.
+    async function saveProject(saveAs, auto = false) {
+        if (!state.buffer) return false;
+        const data = projectData();
+        const text = JSON.stringify(data, null, 1);
         const name = `${state.fileName || 'song'}.lightseq.json`;
+        const at = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         try {
             if (window.showSaveFilePicker) {
                 if (!state.projectHandle || saveAs) {
+                    if (auto) { setProjStatus('Unsaved changes · press Save project once to start auto-saving'); return false; }
                     state.projectHandle = await window.showSaveFilePicker({ suggestedName: name, id: 'xlweb-project', types: [{ description: 'Light sequencer project', accept: { 'application/json': ['.json'] } }] });
                 }
-                const w = await state.projectHandle.createWritable();
+                const h = state.projectHandle;
+                if (h.queryPermission && (await h.queryPermission({ mode: 'readwrite' })) !== 'granted') {
+                    if (auto) { setProjStatus('Unsaved changes · press Save project once to let auto-save write to ' + h.name); return false; }
+                    if ((await h.requestPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('the browser did not allow saving to ' + h.name);
+                }
+                const w = await h.createWritable();
                 await w.write(text);
                 await w.close();
                 state.projectDirty = false;
-                setProjStatus(`Saved ${state.projectHandle.name} at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
-                return;
+                setProjStatus(`${auto ? 'Auto-saved' : 'Saved'} ${h.name} at ${at()}`);
+                rememberProject(h, data);
+                return true;
             }
         } catch (err) {
-            if (err && err.name === 'AbortError') return;
+            if (err && err.name === 'AbortError') return false;
             console.error(err);
+            if (auto) { setProjStatus('Auto-save failed (' + (err.message || err) + '); press Save project.'); return false; }
             setProjStatus('Could not save there (' + (err.message || err) + '); downloading instead.');
         }
+        if (auto) return false;
         download(name, text, 'application/json');
         state.projectDirty = false;
         setProjStatus(`Downloaded ${name}`);
+        return true;
     }
 
     // ---------- the banner that says what opening a project is doing ----------
@@ -1593,7 +1625,8 @@
         b.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    async function openProjectFile(file) {
+    async function openProjectFile(file, handle = null) {
+        pendingProjectHandle = handle;
         try {
             let p;
             try { p = JSON.parse(await file.text()); } catch (e) { p = null; }
@@ -1611,16 +1644,37 @@
             pendingProject = p;
             banner(`Opening project for <b>${esc(songName)}</b>: looking for the song…`);
             const found = await findProjectSong(p, true);
-            if (found) {
+            if (found && !found.needsClick) {
                 banner(`Opening project for <b>${esc(songName)}</b>: found the song (${esc(found.how)}), reading it…`);
                 await loadFile(await found.handle.getFile(), found.handle);
                 return;
             }
+            if (found && found.needsClick) { askToAllow(p, found); return; }
             askForSong(p);
         } catch (err) {
             console.error(err);
             banner(`Could not open that project: ${esc(err.message || String(err))}`, [['OK', () => banner(null)]], 'error');
         }
+    }
+
+    // The browser remembers the song (or its folder) but wants a click before
+    // the page may read it again. One click, no browsing.
+    function askToAllow(p, found) {
+        const s = p.song || {};
+        const what = found.dir ? `${esc(found.label)} (<b>${esc(found.dir.name)}</b>)` : `<b>${esc(s.file || 'the song')}</b>`;
+        banner(`This project's song is ${found.dir ? 'probably in ' : ''}${what}. Your browser asks before the page reads it again: press <b>Open</b>, and in Chrome or Edge choose <b>Allow on every visit</b> so it won't ask next time.`, [
+            [found.dir ? `Open ${found.dir.name}` : `Open ${s.file || 'the song'}`, async () => {
+                const ok = await canRead(found.handle || found.dir, true);
+                if (!ok) { askForSong(p); return; }
+                const again = await findProjectSong(p, false);
+                if (again && !again.needsClick) {
+                    banner(`Reading <b>${esc(s.file || 'the song')}</b>…`);
+                    await loadFile(await again.handle.getFile(), again.handle);
+                } else askForSong(p);
+            }, true],
+            ['Choose the song instead…', () => askForSong(p)],
+            ['Cancel', () => { pendingProject = null; pendingProjectHandle = null; banner(null); }],
+        ], 'ask');
     }
 
     // The song could not be found by itself: say which one is needed and offer ways to point at it.
@@ -1636,7 +1690,7 @@
             if (found) await loadFile(await found.handle.getFile(), found.handle);
             else askForSong(p);
         }]);
-        buttons.push(['Cancel', () => { pendingProject = null; banner(null); }]);
+        buttons.push(['Cancel', () => { pendingProject = null; pendingProjectHandle = null; banner(null); }]);
         banner(`To open this project, the page needs its song: <b>${esc(s.file || 'unknown')}</b>.${where} Choose it once; after that projects find their songs by themselves${window.showDirectoryPicker ? ' (or pick the folder you keep songs in, and every project will look there)' : ''}.`, buttons, 'ask');
     }
 
@@ -1683,7 +1737,8 @@
             }
             draw();
             state.projectDirty = false;
-            setProjStatus(`Opened project (saved ${p.savedAt ? new Date(p.savedAt).toLocaleString() : 'earlier'})`);
+            if (pendingProjectHandle) { state.projectHandle = pendingProjectHandle; pendingProjectHandle = null; rememberProject(state.projectHandle, p); }
+            setProjStatus(`Opened ${state.projectHandle ? state.projectHandle.name : 'project'} (saved ${p.savedAt ? new Date(p.savedAt).toLocaleString() : 'earlier'})`);
             setStatus('Project opened.');
         } finally {
             restoring = false;
@@ -1691,9 +1746,195 @@
     }
 
     $('saveProj').addEventListener('click', e => saveProject(e.shiftKey));
-    $('openProj').addEventListener('click', () => $('projFile').click());
-    $('openProj0').addEventListener('click', () => $('projFile').click());
+    $('openProj').addEventListener('click', () => pickProject());
+    $('openProj0').addEventListener('click', () => pickProject());
     $('projFile').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) openProjectFile(f); });
+
+    const PROJECT_TYPES = [{ description: 'Light sequencer project', accept: { 'application/json': ['.json'] } }];
+
+    // Open a project through the browser's picker where there is one, so the page
+    // keeps a handle: Save then writes back to the same file, and it joins the
+    // recent projects.
+    async function pickProject() {
+        if (!(await confirmLeave())) return;
+        if (!window.showOpenFilePicker) { $('projFile').click(); return; }
+        try {
+            const [h] = await window.showOpenFilePicker({ id: 'xlweb-project', types: PROJECT_TYPES });
+            if (autoSaveOn()) await h.requestPermission({ mode: 'readwrite' }).catch(() => null);
+            await openProjectFile(await h.getFile(), h);
+        } catch (err) { if (!err || err.name !== 'AbortError') banner(`Could not open that project: ${esc(err.message || String(err))}`, [['OK', () => banner(null)]], 'error'); }
+    }
+
+    // ---------- recent projects and the projects folder ----------
+
+    const RECENT_KEY = 'recentProjects';
+    async function recentProjects() {
+        const list = await Show.kvGet(RECENT_KEY);
+        return Array.isArray(list) ? list : [];
+    }
+    async function rememberProject(handle, p) {
+        if (!handle) return;
+        try {
+            let list = await recentProjects();
+            const same = [];
+            for (const r of list) if (r.handle && await r.handle.isSameEntry(handle).catch(() => false)) same.push(r);
+            list = list.filter(r => !same.includes(r));
+            list.unshift({ handle, name: handle.name, song: (p.song && p.song.file) || '', hash: (p.song && p.song.hash) || '', savedAt: p.savedAt || new Date().toISOString(), openedAt: new Date().toISOString() });
+            await Show.kvPut(RECENT_KEY, list.slice(0, 12));
+            renderRecentStart();
+        } catch (e) { /* storage blocked */ }
+    }
+    async function forgetProject(i) {
+        const list = await recentProjects();
+        list.splice(i, 1);
+        await Show.kvPut(RECENT_KEY, list);
+    }
+
+    // Save, don't save, or stay: asked before anything replaces work that isn't saved.
+    function confirmLeave() {
+        if (!state.projectDirty || !hasWork()) return Promise.resolve(true);
+        const dlg = $('leaveDlg');
+        $('leaveName').textContent = state.projectHandle ? state.projectHandle.name : (state.fileName || 'this song');
+        return new Promise(resolve => {
+            const done = v => { dlg.close(); cleanup(); resolve(v); };
+            const save = async () => { dlg.close(); cleanup(); resolve(await saveProject(false)); };
+            const nosave = () => { state.projectDirty = false; done(true); };
+            const cancel = () => done(false);
+            const onCancel = e => { e.preventDefault(); done(false); };
+            const cleanup = () => {
+                $('leaveSave').removeEventListener('click', save);
+                $('leaveDiscard').removeEventListener('click', nosave);
+                $('leaveStay').removeEventListener('click', cancel);
+                dlg.removeEventListener('cancel', onCancel);
+            };
+            $('leaveSave').addEventListener('click', save);
+            $('leaveDiscard').addEventListener('click', nosave);
+            $('leaveStay').addEventListener('click', cancel);
+            dlg.addEventListener('cancel', onCancel);
+            dlg.showModal();
+        });
+    }
+
+    // Open a project from the list. The browser asks before reading a file
+    // again, and only during a click, so the project and its song are asked for
+    // together, straight away.
+    async function openRecent(h, songHash) {
+        if (!(await confirmLeave())) return;
+        const song = songHash ? await Show.kvGet(songKey(songHash)) : null;
+        const asks = [allowFile(h)];
+        if (song) asks.push(canRead(song, true));
+        const [okProject] = await Promise.all(asks);
+        if (!okProject) { banner(`The browser didn't allow opening <b>${esc(h.name)}</b>.`, [['OK', () => banner(null)]], 'error'); return; }
+        closeProjMenu();
+        try { await openProjectFile(await h.getFile(), h); }
+        catch (err) { banner(`Could not open <b>${esc(h.name)}</b> (moved or deleted?): ${esc(err.message || String(err))}`, [['OK', () => banner(null)]], 'error'); }
+    }
+
+    // Read access, plus write access when auto-save will need it.
+    async function allowFile(h) {
+        if (autoSaveOn() && h.requestPermission) {
+            try {
+                if ((await h.queryPermission({ mode: 'readwrite' })) === 'granted' || (await h.requestPermission({ mode: 'readwrite' })) === 'granted') return true;
+            } catch (e) { /* fall back to read */ }
+        }
+        return canRead(h, true);
+    }
+
+    async function listProjectsIn(dir, depth = 1, out = [], prefix = '') {
+        try {
+            for await (const [n, h] of dir.entries()) {
+                if (h.kind === 'file' && /\.lightseq\.json$/i.test(n)) out.push({ handle: h, name: n, where: prefix });
+                else if (h.kind === 'directory' && depth > 0 && !/^backup/i.test(n)) await listProjectsIn(h, depth - 1, out, prefix ? prefix + '/' + n : n);
+            }
+        } catch (e) { /* unreadable */ }
+        return out;
+    }
+
+    const ago = iso => {
+        const s = (Date.now() - new Date(iso).getTime()) / 1000;
+        if (!(s >= 0)) return '';
+        if (s < 3600) return Math.max(1, Math.round(s / 60)) + ' min ago';
+        if (s < 86400) return Math.round(s / 3600) + ' h ago';
+        return new Date(iso).toLocaleDateString();
+    };
+
+    async function drawProjMenu(askFolder = false) {
+        const box = $('projMenuList');
+        const list = await recentProjects();
+        const isCurrent = async r => state.projectHandle && r.handle && await r.handle.isSameEntry(state.projectHandle).catch(() => false);
+        let html = '<div class="pm-head">Recent projects</div>';
+        if (!list.length) html += '<p class="muted small pm-empty">Projects you open or save appear here.</p>';
+        for (let i = 0; i < list.length; i++) {
+            const r = list[i];
+            html += `<div class="pm-row${(await isCurrent(r)) ? ' current' : ''}"><button type="button" class="pm-open" data-i="${i}"><b>${esc(r.name.replace(/\.lightseq\.json$/i, ''))}</b><span class="muted small">${esc(r.song || '')}${r.openedAt ? ' · ' + esc(ago(r.openedAt)) : ''}</span></button><button type="button" class="pm-x" data-x="${i}" title="Remove from this list (the file stays)" aria-label="Remove from list">×</button></div>`;
+        }
+        const dir = await Show.kvGet('projectsFolder');
+        if (dir) {
+            let ok = await canRead(dir, askFolder);
+            html += `<div class="pm-head">In ${esc(dir.name)}</div>`;
+            if (!ok) html += `<p class="small pm-empty"><button type="button" class="link" id="pmAllow">Show the projects in ${esc(dir.name)}</button></p>`;
+            else {
+                const files = (await listProjectsIn(dir)).sort((a, b) => a.name.localeCompare(b.name));
+                if (!files.length) html += '<p class="muted small pm-empty">No projects in this folder yet.</p>';
+                files.forEach((f, i) => { html += `<div class="pm-row"><button type="button" class="pm-open" data-f="${i}"><b>${esc(f.name.replace(/\.lightseq\.json$/i, ''))}</b>${f.where ? `<span class="muted small">${esc(f.where)}</span>` : ''}</button></div>`; });
+                box._files = files;
+            }
+        }
+        html += `<div class="pm-foot"><button type="button" class="btn small" id="pmOther">Open another…</button>${window.showDirectoryPicker ? `<button type="button" class="btn small" id="pmFolder">${dir ? 'Change projects folder…' : 'Choose projects folder…'}</button>` : ''}</div>`;
+        box.innerHTML = html;
+        box.querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => { const r = list[+b.dataset.i]; openRecent(r.handle, r.hash); }));
+        box.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', () => openRecent(box._files[+b.dataset.f].handle, null)));
+        box.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', async e => { e.stopPropagation(); await forgetProject(+b.dataset.x); drawProjMenu(); renderRecentStart(); }));
+        const allow = $('pmAllow'); if (allow) allow.addEventListener('click', () => drawProjMenu(true));
+        $('pmOther').addEventListener('click', () => { closeProjMenu(); pickProject(); });
+        const pf = $('pmFolder');
+        if (pf) pf.addEventListener('click', async () => {
+            try {
+                const d = await window.showDirectoryPicker({ id: 'xlweb-projects', mode: 'readwrite' });
+                await Show.kvPut('projectsFolder', d);
+                drawProjMenu();
+            } catch (e) { /* cancelled */ }
+        });
+    }
+    function closeProjMenu() { $('projMenu').hidden = true; $('projMenuBtn').setAttribute('aria-expanded', 'false'); }
+    $('projMenuBtn').addEventListener('click', e => {
+        e.stopPropagation();
+        const m = $('projMenu');
+        if (!m.hidden) { closeProjMenu(); return; }
+        m.hidden = false;
+        $('projMenuBtn').setAttribute('aria-expanded', 'true');
+        // keep it on screen whichever side of the window the button is on
+        m.style.left = '0px';
+        const r = m.getBoundingClientRect();
+        if (window.innerWidth > 0 && r.right > window.innerWidth - 8) m.style.left = Math.round(window.innerWidth - 8 - r.right) + 'px';
+        drawProjMenu();
+    });
+    document.addEventListener('click', e => { if (!$('projMenu').hidden && !e.composedPath().includes($('projMenu'))) closeProjMenu(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('projMenu').hidden) closeProjMenu(); });
+
+    // The start screen lists recent projects too: one click back to work.
+    async function renderRecentStart() {
+        const box = $('recentStart');
+        const list = (await recentProjects()).slice(0, 6);
+        if (!list.length || state.buffer) { box.hidden = true; return; }
+        box.hidden = false;
+        box.innerHTML = '<span class="muted small">Recent projects:</span> ' + list.map((r, i) => `<button type="button" class="btn small" data-i="${i}" title="${esc(r.song || '')}">${esc(r.name.replace(/\.lightseq\.json$/i, ''))}</button>`).join(' ');
+        box.querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => { const r = list[+b.dataset.i]; openRecent(r.handle, r.hash); }));
+    }
+    renderRecentStart();
+
+    // ---------- auto-save ----------
+
+    try { $('autoSave').checked = localStorage.getItem('xlweb-autosave') === '1'; } catch (e) { /* storage blocked */ }
+    if (!window.showSaveFilePicker) { $('autoSave').checked = false; $('autoSave').disabled = true; $('autoSave').parentElement.title = 'Auto-save needs Chrome or Edge (they can write to a file you chose)'; }
+    $('autoSave').addEventListener('change', async e => {
+        try { localStorage.setItem('xlweb-autosave', e.target.checked ? '1' : '0'); } catch (err) { /* storage blocked */ }
+        if (!e.target.checked) clearTimeout(markDirty.t);
+        if (!e.target.checked || !state.buffer) return;
+        // turning it on saves now, choosing the file first if there isn't one yet
+        if (state.projectDirty || !state.projectHandle) await saveProject(false);
+        else setProjStatus('Auto-save on: changes save by themselves to ' + state.projectHandle.name);
+    });
     document.addEventListener('keydown', e => {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveProject(e.shiftKey); }
     });
@@ -1730,6 +1971,11 @@
         sectionAt: t => sectionAtTime(t),
         projectData: () => projectData(),
         song: () => state.grid && { model: state.model, grid: state.grid, sections: state.grid.sections, lyr: state.lyr, fileName: state.fileName, fileFull: state.fileFull, hash: state.hash },
+        // test hooks: open a project from a file handle; save as if Save project were pressed
+        openProjectHandle: (h, hash) => openRecent(h, hash || null),
+        saveProject: (auto) => saveProject(false, !!auto),
+        setProjectHandle: h => { state.projectHandle = h; },
+        projectState: () => ({ dirty: state.projectDirty, handle: state.projectHandle ? state.projectHandle.name : null, status: $('projStatus').textContent }),
         loadUrl: async (url) => {
             state.fileFull = decodeURIComponent(url.split('/').pop());
             state.fileName = state.fileFull.replace(/\.[^.]+$/, '');

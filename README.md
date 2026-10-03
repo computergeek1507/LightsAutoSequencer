@@ -188,6 +188,15 @@ between visits, but the project file is the copy to trust.
   words on the matrix (95–97%) and washes match; chases and marquees have the right
   pattern but can be out of phase. The preview is a guide; xLights' render is the truth.
 
+
+**Switching and auto-save.** Projects open through the browser's file picker, so *Save*
+writes back to the same file. *Projects ▾* lists recent projects (kept as file handles in
+the browser) and everything in a chosen projects folder; switching with unsaved changes asks
+Save / Don't save / Cancel. *Auto-save* saves 1.5 s after each change (Chrome/Edge). When the
+browser wants permission to read a remembered song again, a note offers one **Open** click
+instead of browsing (Chrome/Edge also offer *Allow on every visit*). The theme menu at the top
+right switches Auto / Light / Dark.
+
 ## Exports
 
 - **.xtiming**: imports into xLights (timing track header → Import Timing Tracks). Pick the

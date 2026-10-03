@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lights Auto Sequencer</title>
 <script src="coi.js"></script>
+<script src="js/theme.js"></script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-row">
     <h1>Lights Auto Sequencer <span class="sub">make xLights sequences in the browser</span></h1>
-    <nav class="help-links"><button type="button" class="btn small" id="tourBtn">Show me around</button> <a class="btn small" href="tutorial.html" target="_blank" rel="noopener">How to use</a></nav>
+    <nav class="help-links"><label class="theme-sel" title="Colours of the page"><span class="sr">Theme</span><select id="themeSel" aria-label="Theme"><option value="auto">🖥 Auto</option><option value="light">☀ Light</option><option value="dark">🌙 Dark</option></select></label> <button type="button" class="btn small" id="tourBtn">Show me around</button> <a class="btn small" href="tutorial.html" target="_blank" rel="noopener">How to use</a></nav>
   </div>
 </header>
 
@@ -24,6 +25,7 @@
     <span><b>New here?</b> A two-minute tour shows where everything is.</span>
     <span><button type="button" class="btn small primary" id="tourStart">Show me around</button> <a class="btn small" href="tutorial.html" target="_blank" rel="noopener">Read the guide</a> <button type="button" class="btn small" id="tourNo">No thanks</button></span>
   </div>
+  <div class="recent-start" id="recentStart" hidden></div>
   <section id="drop" class="drop">
     <input type="file" id="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac" hidden>
     <p class="drop-title">Drop an MP3 here</p>
@@ -48,6 +50,11 @@
       <div class="project">
         <button type="button" class="btn small primary" id="saveProj" title="Save everything (Ctrl+S)">Save project</button>
         <button type="button" class="btn small" id="openProj">Open project…</button>
+        <span class="proj-menu-wrap">
+          <button type="button" class="btn small" id="projMenuBtn" aria-haspopup="true" aria-expanded="false" title="Switch to a recent project or one in your projects folder">Projects ▾</button>
+          <div class="proj-menu" id="projMenu" hidden><div id="projMenuList"></div></div>
+        </span>
+        <label class="chk small" title="Saves the project by itself a moment after every change"><input type="checkbox" id="autoSave"> Auto-save</label>
         <span id="projStatus" class="muted small"></span>
       </div>
       <nav class="tabs" role="tablist">
@@ -339,6 +346,16 @@
       <button type="submit" class="btn primary">Done</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="leaveDlg" class="picker leave-dlg">
+  <div class="picker-inner">
+    <div class="picker-head"><h2>Save your changes?</h2><span class="muted small"><b id="leaveName"></b> has changes that aren't saved yet.</span></div>
+    <div class="picker-foot">
+      <button type="button" class="btn" id="leaveStay">Cancel</button>
+      <span class="btnrow tight"><button type="button" class="btn" id="leaveDiscard">Don't save</button> <button type="button" class="btn primary" id="leaveSave">Save</button></span>
+    </div>
+  </div>
 </dialog>
 
 <dialog id="typesDlg" class="picker mix-dlg">
