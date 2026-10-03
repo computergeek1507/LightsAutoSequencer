@@ -9,13 +9,20 @@
 </head>
 <body>
 <header class="topbar">
-  <h1>Lights Auto Sequencer <span class="sub">make xLights sequences in the browser</span></h1>
+  <div class="topbar-row">
+    <h1>Lights Auto Sequencer <span class="sub">make xLights sequences in the browser</span></h1>
+    <nav class="help-links"><button type="button" class="btn small" id="tourBtn">Show me around</button> <a class="btn small" href="tutorial.html" target="_blank" rel="noopener">How to use</a></nav>
+  </div>
 </header>
 
 <main>
   <div class="proj-banner" id="projBanner" role="status" aria-live="polite" hidden>
     <div id="projBannerText"></div>
     <div class="btnrow tight" id="projBannerBtns"></div>
+  </div>
+  <div class="tour-welcome" id="tourWelcome" hidden>
+    <span><b>New here?</b> A two-minute tour shows where everything is.</span>
+    <span><button type="button" class="btn small primary" id="tourStart">Show me around</button> <a class="btn small" href="tutorial.html" target="_blank" rel="noopener">Read the guide</a> <button type="button" class="btn small" id="tourNo">No thanks</button></span>
   </div>
   <section id="drop" class="drop">
     <input type="file" id="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac" hidden>
@@ -238,6 +245,7 @@
           <label class="chk" title="A long part changes a little where its energy changes: more or fewer props, the other colour, moving things turn round"><input type="checkbox" id="ideaPhrased" checked> Change with the energy inside long parts</label>
           <label class="chk" title="The matrix shows the words in choruses and stays a dim, slow background everywhere else"><input type="checkbox" id="ideaMatrixWords"> Words on the matrix in choruses</label>
           <button type="button" class="btn small" id="mixBtn" title="Use certain props more or less in each part of the song">Prop mix…</button>
+          <button type="button" class="btn small" id="typesBtn" title="Tell ideas what each prop is when its name doesn't say">Prop types…</button>
           <button type="button" class="btn small" id="ideaExcludeBtn" title="Props, groups or parts of props that ideas must never use">Leave out of ideas…</button>
           <span class="muted small" id="ideaExcludeTxt"></span>
         </div>
@@ -277,7 +285,9 @@
   <p><b>Private by design:</b> everything runs in your browser. Your song and your show folder are never uploaded.
   The first time you find the words, the voice and speech models (about 400 MB) download once from Hugging Face and are kept by your browser.</p>
   <p>Works best in <b>Chrome</b> or <b>Edge</b> on a computer (they can open your show folder and run the models on the graphics card).
-  Not every xLights prop type is drawn in the preview yet; unknown types show as single dots.</p>
+  DMX fixtures and image models show as single dots in the preview (the saved sequence is fine).
+  Ideas start from one person's sequencing style; <b>Feeling</b>, <b>Prop mix</b> and <b>Prop types</b> steer them.
+  New here? <a href="tutorial.html" target="_blank" rel="noopener">Read the guide</a>.</p>
   <p>An independent tool for <a href="https://xlights.org" target="_blank" rel="noopener">xLights</a>, not made by the xLights project.
   Free and open source (GPLv3): <a href="https://github.com/socman1984-hub/LightsAutoSequencer" target="_blank" rel="noopener">source and issues on GitHub</a>.</p>
 </footer>
@@ -331,6 +341,18 @@
   </form>
 </dialog>
 
+<dialog id="typesDlg" class="picker mix-dlg">
+  <form method="dialog" class="picker-inner">
+    <div class="picker-head"><h2>Prop types</h2><span class="muted small">Ideas guess what each prop is from its name (an "Arch" gets arch effects). When a name doesn't say, choose the type here. Saved for this show in this browser.</span></div>
+    <div class="btnrow tight"><input type="search" id="typesFind" placeholder="Find a prop or group…" aria-label="Find a prop or group"> <label class="chk small"><input type="checkbox" id="typesUnknown"> Only ones it couldn't tell</label></div>
+    <div class="mix-wrap"><table class="mix-table" id="typesTable"></table></div>
+    <div class="picker-foot">
+      <button type="button" class="btn small" id="typesReset">Back to the guesses</button>
+      <button type="submit" class="btn primary">Done</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="recolourDlg" class="picker recolour-dlg">
   <form method="dialog" class="picker-inner">
     <div class="picker-head"><h2>Change colours</h2><span class="muted small">Only the colours change; effects stay as they are. The preview shows it before you apply.</span></div>
@@ -379,5 +401,6 @@
 <script src="js/fit.js"></script>
 <script src="js/app.js"></script>
 <script src="js/sequi.js"></script>
+<script src="js/tour.js"></script>
 </body>
 </html>

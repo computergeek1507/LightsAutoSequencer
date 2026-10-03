@@ -4,6 +4,9 @@ Turn a song into an [xLights](https://xlights.org) sequence, right in your brows
 independent tool for xLights users; not made by or affiliated with the xLights project.
 Everything runs on your own computer: the song and your show folder are never uploaded.
 
+**New to it?** Read [How to use](https://socman1984-hub.github.io/LightsAutoSequencer/tutorial.html)
+(`tutorial.html`), or press **Show me around** in the app for a guided tour.
+
 Two tabs:
 
 1. **Song & words**: beats, sections, energy, drum hits, lyrics with timing, melody.
@@ -155,6 +158,9 @@ Ctrl+Z undoes. Edits are kept per song (keyed by word position + word), survive
   choruses use both and swap them bar by bar, quiet parts go cool.
 - *Words on the matrix in choruses* (option): the lyrics on the matrix in the lifting parts,
   a dim slow background on it everywhere else.
+- *Prop types…* tells ideas what a prop is when its name doesn't say. Without it, a group is
+  judged by what most of its members are (so "Everything but starburst" is not a group of
+  stars), and a model by its name, then its xLights type.
 - The 🎲 tick on a section card says whether *Another idea* changes that part (same as the
   *For:* menu). The tick at the start of a light row: untick it to keep that row (🔒) when
   randomizing; new ideas fill in around it.

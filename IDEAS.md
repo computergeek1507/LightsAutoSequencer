@@ -171,7 +171,7 @@ bandwidth.
 
 **What has to happen first:**
 
-1. **Model types.** Only the 10 types in Ryan's layout are drawn properly. Others (Icicles,
+1. ~~**Model types.**~~ *(done 2026-10-03 except DMX, image and label models)* Only the 10 types in Ryan's layout are drawn properly. Others (Icicles,
    Circle, Spinner, Wreath, Sphere, Candy Cane model, DMX, …) fall back to a single dot, so
    other people's previews would look broken. Port the rest from xLights' `src-core/models`.
 2. **License.** xLights is GPLv3 and the model geometry here is ported from it; the
@@ -182,7 +182,7 @@ bandwidth.
 4. **Browser support.** Chrome and Edge do everything. Firefox and Safari can't open folders
    (the "pick the two files" fallback works) and the voice models may fall back to slower
    CPU paths. Say so on the page, and test there.
-5. **Generalize Ryan-specific defaults.** Idea weights come from his 44 sequences (fine as a
+5. ~~**Generalize Ryan-specific defaults.**~~ *(mostly done 2026-10-03: group-by-members guessing, Prop types…, note on the page)* Idea weights come from his 44 sequences (fine as a
    starting point, but say so); the prop-type guessing relies on group names like "All
    Arches"; check the "not wired to a controller" rule on other layouts.
 6. **Test with other shows.** Ask a few xLights users for their `xlights_rgbeffects.xml`;
@@ -212,6 +212,22 @@ hosting account) is his to do; I can prepare everything up to that point.
 
 ## Done
 
+- **2026-10-03:** Ready for other people's shows (tested on the vendor "Wizards in Winter"
+  traditional layout, 155 models, 160 groups):
+  - Preview draws circles, icicles (with height and shear, so peak icicles hang straight),
+    candy canes, spinners, wreaths, spheres (incl. the pre-version-8 rescale), multi-point and
+    channel blocks, plus the older names (Tree 180/360/Flat, Vert/Horiz Matrix) and older
+    files that store sizes in parm1/2/3. Arches now stay upright when drawn right to left.
+    Still a single dot: DMX fixtures, image and label models.
+  - Fixed: a prop whose kind couldn't be guessed crashed *Suggest a plan*.
+  - Groups are judged by their members; small "Tree" models count as mini trees; a part of
+    a prop ("Snowflake/Outline") belongs to that prop. *Prop types…* overrides any guess.
+    On Ryan's show the only change: house lines now use *All House Outline* (roofline and
+    verticals) instead of *All House Horizontal* (mostly window segments).
+  - Page notes that ideas start from one person's style.
+- **2026-10-03:** Tutorial: *How to use* page (`tutorial.html`, 11 steps plus questions and
+  fixes) and an in-app *Show me around* tour (14 steps that point at the real controls,
+  offered once on a first visit; `?tour=1` starts it).
 - **2026-10-03:** Randomizing parts of a plan: each section card has a 🎲 tick (blue stripe
   when the next *Another idea* will change it; kept in step with *For:*), and each light row
   has a tick: untick to keep that row (🔒) through *Another idea* and *Randomize*. New

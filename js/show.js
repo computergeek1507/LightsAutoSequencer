@@ -221,6 +221,32 @@ const Show = (() => {
         return pts;
     }
 
+    // Three-point location (arches, candy canes, icicles): like two-point, but the
+    // model always stands upright (a line drawn right to left is mirrored, not
+    // flipped), and some models stretch by their Height and lean by their Shear.
+    // ThreePointScreenLocation::PrepareToDraw.
+    function threePoint(a, pts, renderWi, { height = false, defHeight = 1, shear = false } = {}) {
+        const x0 = num(a.WorldPosX), y0 = num(a.WorldPosY);
+        let dx = num(a.X2), dy = num(a.Y2);
+        if (dx === 0 && dy === 0) dx = 0.001;
+        const swapped = dx < 0;
+        const ax = swapped ? -dx : dx, ay = swapped ? -dy : dy;
+        const len = Math.hypot(ax, ay) || 0.001;
+        const ux = ax / len, uy = ay / len;
+        const sc = len / (renderWi || 1);
+        const h = height ? num(a.Height, defHeight) : 1;
+        const sh = shear ? num(a.Shear, 0) : 0;
+        for (const p of pts) {
+            let x = p.x * sc, y = p.y * sc * h;
+            // glm::shearY: x moves with y (drops lean so they hang straight on a slope)
+            x += sh * y;
+            if (swapped) x = -x;
+            p.x = x0 + x * ux - y * uy;
+            p.y = y0 + x * uy + y * ux;
+        }
+        return pts;
+    }
+
     function buildModel(a) {
         const type = a.DisplayAs;
         if (!type || type === 'ModelGroup') return null;
@@ -235,7 +261,22 @@ const Show = (() => {
             case 'Window Frame': g = windowGeom(a); break;
             case 'Cube': g = cubeGeom(a); break;
             case 'Star': g = starGeom(a); break;
-            default: g = pointGeom(a);
+            case 'Circle': g = circleGeom(a); break;
+            case 'Icicles': g = iciclesGeom(a); break;
+            case 'Candy Canes': g = caneGeom(a); break;
+            case 'Spinner': g = spinnerGeom(a); break;
+            case 'Wreath': g = wreathGeom(a); break;
+            case 'Sphere': g = sphereGeom(a); break;
+            case 'MultiPoint': g = multiPointGeom(a); break;
+            case 'Channel Block': g = channelBlockGeom(a); break;
+            default:
+                // Vert/Horiz Matrix and "Tree 360" are older names for the same models
+                if (/^(Vert|Horiz) Matrix$/.test(type)) g = matrixGeom({ ...a, Vertical: type.startsWith('Vert') ? 'true' : 'false' });
+                else if (/^Tree /.test(type)) {
+                    const d = type.match(/^Tree (\d+)/);
+                    g = treeGeom({ ...a, TreeType: /Flat/.test(type) ? '1' : /Ribbon/.test(type) ? '2' : '0', TreeDegrees: d ? d[1] : a.TreeDegrees });
+                }
+                else g = pointGeom(a);
         }
         return {
             name: a.name, type, attrs: a,
@@ -245,7 +286,7 @@ const Show = (() => {
     }
 
     function customGeom(a) {
-        const W = Math.max(1, int(a.CustomWidth, 1)), H = Math.max(1, int(a.CustomHeight, 1)), D = Math.max(1, int(a.Depth, 1));
+        const W = Math.max(1, parm(a, 'CustomWidth', 'parm1', 1)), H = Math.max(1, parm(a, 'CustomHeight', 'parm2', 1)), D = Math.max(1, int(a.Depth, 1));
         const cells = [];   // [value, row, col, layer]
         if (a.CustomModelCompressed) {
             for (const part of a.CustomModelCompressed.split(';')) {
@@ -347,7 +388,7 @@ const Show = (() => {
     }
 
     function lineCount(a) {
-        return Math.max(1, int(a.NumStrings, 1)) * Math.max(1, int(a.NodesPerString, int(a.parm2, 50)));
+        return Math.max(1, parm(a, 'NumStrings', 'parm1', 1)) * Math.max(1, parm(a, 'NodesPerString', 'parm2', 50));
     }
 
     function singleLineGeom(a) {
@@ -363,7 +404,7 @@ const Show = (() => {
     }
 
     function polyLineGeom(a) {
-        const n = Math.max(1, int(a.NodesPerString, 50)) * Math.max(1, int(a.PolyStrings, 1));
+        const n = Math.max(1, parm(a, 'NodesPerString', 'parm2', 50)) * Math.max(1, int(a.PolyStrings, 1));
         const raw = (a.PointData || '').split(',').map(Number).filter(Number.isFinite);
         const sx = num(a.ScaleX, 1), sy = num(a.ScaleY, 1), wx = num(a.WorldPosX), wy = num(a.WorldPosY);
         const P = [];
@@ -385,7 +426,7 @@ const Show = (() => {
     }
 
     function archesGeom(a) {
-        const arches = Math.max(1, int(a.NumArches, 1)), per = Math.max(1, int(a.NodesPerArch, 25));
+        const arches = Math.max(1, parm(a, 'NumArches', 'parm1', 1)), per = Math.max(1, parm(a, 'NodesPerArch', 'parm2', 25));
         const arc = num(a.Arc, 180), height = num(a.Height, 1);
         const rev = a.Dir === 'R';
         const span = arches * per;
@@ -401,12 +442,12 @@ const Show = (() => {
                 nodes.push({ bx, by: k, pts: [{ x, y }] });
             }
         }
-        twoPoint(a, nodes.flatMap(n => n.pts), span);
+        threePoint(a, nodes.flatMap(n => n.pts), span);
         return { nodes, bufW: per, bufH: arches };
     }
 
     function windowGeom(a) {
-        const top = int(a.TopNodes, 0), side = int(a.SideNodes, 0), bottom = int(a.BottomNodes, 0);
+        const top = parm(a, 'TopNodes', 'parm1', 0), side = parm(a, 'SideNodes', 'parm2', 0), bottom = parm(a, 'BottomNodes', 'parm3', 0);
         const w = Math.max(top, bottom) + 2, h = Math.max(1, side);
         const nodes = [];
         const push = (bx, by, x, y) => nodes.push({ bx, by, pts: [{ x, y }] });
@@ -415,13 +456,13 @@ const Show = (() => {
         for (let i = 0; i < top; i++) push(1 + Math.round(i * (w - 2) / Math.max(1, top)), h - 1, -w / 2 + (i + 1) * w / (top + 1), h / 2);
         for (let i = 0; i < side; i++) push(w - 1, h - 1 - i, w / 2, h / 2 - (i + 0.5) * h / side);
         for (let i = 0; i < bottom; i++) push(w - 2 - Math.round(i * (w - 2) / Math.max(1, bottom)), 0, w / 2 - (i + 1) * w / (bottom + 1), -h / 2);
-        if (a.Rotation === 'Counter Clockwise') nodes.reverse();
+        if (a.Rotation === 'Counter Clockwise' || a.Rotation === 'CCW') nodes.reverse();
         boxed(a, nodes.flatMap(n => n.pts));
         return { nodes, bufW: w, bufH: h };
     }
 
     function cubeGeom(a) {
-        const w = Math.max(1, int(a.CubeWidth, 5)), h = Math.max(1, int(a.CubeHeight, 5)), d = Math.max(1, int(a.CubeDepth, 5));
+        const w = Math.max(1, parm(a, 'CubeWidth', 'parm1', 5)), h = Math.max(1, parm(a, 'CubeHeight', 'parm2', 5)), d = Math.max(1, parm(a, 'CubeDepth', 'parm3', 5));
         const nodes = [];
         // CubeModel::InitModel: raw node units, halved with C++ integer division,
         // then scaled by the model's ScaleX/Y/Z like every boxed model. (A row of
@@ -436,10 +477,11 @@ const Show = (() => {
     }
 
     function starGeom(a) {
-        const points = Math.max(2, int(a.StarPoints, 5));
+        const points = Math.max(2, parm(a, 'StarPoints', 'parm3', 5));
         const ratio = num(a.starRatio, 2.618);
         let layers = (a.LayerSizes || '').split(',').map(x => parseInt(x, 10)).filter(x => x > 0);
-        if (!layers.length) layers = [Math.max(1, int(a.NodesPerString, 50)) * Math.max(1, int(a.NumStrings, 1))];
+        if (!layers.length && a.starSizes) layers = a.starSizes.split(',').map(x => parseInt(x, 10)).filter(x => x > 0);
+        if (!layers.length) layers = [Math.max(1, parm(a, 'NodesPerString', 'parm2', 50)) * Math.max(1, parm(a, 'NumStrings', 'parm1', 1))];
         const size = Math.max(...layers);
         const sorted = [...layers].sort((p, q) => p - q);
         const nodes = [];
@@ -466,6 +508,222 @@ const Show = (() => {
         });
         boxed(a, nodes.flatMap(n => n.pts));
         return { nodes, bufW: size + 1, bufH: size + 1 };
+    }
+
+    const parm = (a, key, parmKey, def) => int(a[key], int(a[parmKey], def));
+    const isLtoR = a => a.Dir !== 'R';
+    const isBotToTop = (a, def = true) => a.StartSide === undefined ? def : a.StartSide === 'B';
+    function layerSizes(a, total) {
+        let ls = (a.LayerSizes || '').split(',').map(x => parseInt(x, 10)).filter(x => x > 0);
+        if (!ls.length && a.circleSizes) ls = a.circleSizes.split(',').map(x => parseInt(x, 10)).filter(x => x > 0).reverse();
+        if (ls.length <= 1) return [total];
+        // trim to the lights the model has (CircleModel::InitCircle)
+        let cnt = 0;
+        return ls.map(n => { const v = cnt + n > total ? Math.max(0, total - cnt) : n; cnt += n; return v; });
+    }
+
+    // CircleModel::InitCircle + SetCircleCoord: rings, largest layer first.
+    function circleGeom(a) {
+        const total = parm(a, 'NumStrings', 'parm1', 1) * parm(a, 'NodesPerString', 'parm2', 1);
+        const layers = layerSizes(a, total);
+        const maxL = Math.max(1, ...layers);
+        const centre = parm(a, 'centerPercent', 'parm3', 0);
+        const insideOut = a.InsideOut === '1';
+        const ltor = isLtoR(a), b2t = isBotToTop(a, false);
+        const nL = layers.length;
+        const maxR = maxL / 2, minR = centre / 100 * maxR;
+        const nodes = [];
+        layers.forEach((count, circle) => {
+            const fudge = -1 * Math.floor(maxL / Math.max(1, count)) + 1;
+            const radius = nL === 1 ? maxR : insideOut ? minR + (maxR - minR) * (1 - (nL - circle - 1) / (nL - 1)) : minR + (maxR - minR) * (1 - circle / (nL - 1));
+            for (let n = 0; n < count; n++) {
+                const pct = count === 1 ? n : n / (count - 1);
+                const bx = count === maxL ? n : Math.floor(pct * (maxL - 1 + fudge));
+                let ang = (b2t ? -Math.PI : 0) + Math.PI * (count === 1 ? 0 : n / count) * 2;
+                if (!ltor) ang = -ang;
+                nodes.push({ bx: Math.max(0, bx), by: insideOut ? nL - circle - 1 : circle, pts: [{ x: Math.sin(ang) * radius, y: Math.cos(ang) * radius }] });
+            }
+        });
+        boxed(a, nodes.flatMap(n => n.pts));
+        return { nodes, bufW: maxL, bufH: nL };
+    }
+
+    // IciclesModel::InitModel: drops hang from the top line in a repeating pattern.
+    function iciclesGeom(a) {
+        const strings = parm(a, 'NumStrings', 'parm1', 1), per = parm(a, 'NodesPerString', 'parm2', 1);
+        const drops = (a.DropPattern || '3,4,5,4').split(',').map(x => parseInt(x, 10)).filter(x => x > 0);
+        if (!drops.length) drops.push(1);
+        const maxH = Math.max(...drops);
+        const alt = a.AlternateNodes === 'true';
+        const nodes = [];
+        let width = -1;
+        for (let s = 0; s < strings; s++) {
+            let lights = per, y = 0, d = 0;
+            width++;
+            while (lights > 0) {
+                while (y >= drops[d]) { width++; y = 0; d = (d + 1) % drops.length; }
+                const inDrop = drops[d];
+                let sy, by;
+                if (alt) {
+                    sy = y + 1 <= (inDrop + 1) / 2 ? 2 * y : (inDrop - (y + 1)) * 2 + 1;
+                } else sy = y;
+                by = maxH - 1 - sy;
+                nodes.push({ bx: width, by, pts: [{ x: width, y: sy }] });
+                lights--; y++;
+            }
+        }
+        if (!isLtoR(a)) for (const n of nodes) { n.bx = width - n.bx; n.pts[0].x = width - n.pts[0].x; }
+        let renderW = width;
+        if (width === 0) { for (const n of nodes) n.pts[0].x = 0.5; renderW = 1; }
+        threePoint(a, nodes.flatMap(n => n.pts), renderW, { height: true, defHeight: -0.5, shear: true });
+        return { nodes, bufW: width + 1, bufH: maxH };
+    }
+
+    // CandyCaneModel::SetCaneCoord (pixel canes, one light per node): an upright
+    // then a hook, canes side by side with a gap of 2.
+    function caneGeom(a) {
+        const canes = parm(a, 'NumCanes', 'parm1', 1), seg = parm(a, 'NodesPerCane', 'parm2', 1);
+        const lpn = Math.max(1, parm(a, 'LightsPerNode', 'parm3', 1));
+        const mh = num(a.Height, 1), ch = num(a.CandyCaneHeight, 1);
+        const reverse = a.CandyCaneReverse === 'true', sticks = a.CandyCaneSticks === 'true', alt = a.AlternateNodes === 'true';
+        const angle = num(a.CandyCaneSkew, num(a.Angle, 0)) * Math.PI / 180;
+        const perCane = seg * lpn;
+        const upright = Math.floor(seg * 6 / 9) * lpn;
+        const wpc = perCane * 3 / 9, gap = 2;
+        const width = canes * wpc + (canes - 1) * gap;
+        const rot = (cx, x, y) => { const c = Math.cos(angle), s = Math.sin(angle); const dx = x - cx; return { x: dx * c - y * s + cx, y: dx * s + y * c }; };
+        // which node sits at light y of a cane (alternate nodes interleave)
+        const nodeAt = (i, k) => {
+            if (!alt) return i * seg + k;
+            for (let x = 0; x < seg; x++) {
+                const by = x + 1 <= (seg + 1) / 2 ? 2 * x : (seg - (x + 1)) * 2 + 1;
+                if (by === k) return i * seg + x;
+            }
+            return i * seg + k;
+        };
+        const ltor = isLtoR(a);
+        const nodes = [];
+        for (let i = 0; i < canes; i++) for (let x = 0; x < seg; x++) {
+            const by = alt ? (x + 1 <= (seg + 1) / 2 ? 2 * x : (seg - (x + 1)) * 2 + 1) : x;
+            nodes.push({ bx: ltor ? i : canes - 1 - i, by, pts: [] });
+        }
+        for (let i = 0; i < canes; i++) {
+            if (sticks) {
+                const x = i * (wpc + gap) + wpc / 2;
+                for (let y = 0; y < perCane; y++) nodes[nodeAt(i, Math.floor(y / lpn))].pts.push(rot(x, x, ch * y * mh));
+                continue;
+            }
+            let x = i * (wpc + gap) + (reverse ? wpc : 0);
+            const ox = x;
+            const cx = x + (reverse ? -1 : 1) * wpc / 2 * mh;
+            let y = 0, cur = 0;
+            while (cur < upright) { nodes[nodeAt(i, Math.floor(y / lpn))].pts.push(rot(ox, x, ch * y * mh)); y++; cur++; }
+            y--;
+            const arc = perCane - upright;
+            while (cur < perCane) {
+                const aa = Math.PI - Math.PI * (cur - upright + 1) / arc;
+                const y2 = Math.sin(aa) * wpc / 2 * mh, x2 = Math.cos(aa) * wpc / 2 * mh;
+                nodes[nodeAt(i, Math.floor(cur / lpn))].pts.push(rot(ox, reverse ? cx - x2 : cx + x2, ch * (y * mh + y2)));
+                cur++;
+            }
+        }
+        for (const n of nodes) if (!n.pts.length) n.pts.push({ x: 0, y: 0 });
+        threePoint(a, nodes.flatMap(n => n.pts), width);
+        return { nodes, bufW: canes, bufH: seg };
+    }
+
+    // SpinnerModel::InitModel + SetSpinnerCoord: arms out from a hollow centre.
+    function spinnerGeom(a) {
+        const strings = parm(a, 'NumStrings', 'parm1', 1), per = parm(a, 'NodesPerArm', 'parm2', 1), armsPer = parm(a, 'ArmsPerString', 'parm3', 1);
+        const hollow = int(a.Hollow, 20), startAngle = int(a.StartAngle, 0), arc = int(a.Arc, 360);
+        const zig = a.ZigZag === 'true', alt = a.Alternate === 'true';
+        const ltor = isLtoR(a), fromCentre = !isBotToTop(a);
+        const arms = strings * armsPer;
+        let ang = Math.PI * 2 * (270 + startAngle) / 360;
+        let inc = Math.PI * 2 * arc / (arms * 360);
+        if (arc < 360 && arms > 1) inc = Math.PI * 2 * arc / ((arms - 1) * 360);
+        const b2t = isBotToTop(a);
+        const nodes = [];
+        for (let x = 0; x < arms; x++) {
+            for (let y = 0; y < per; y++) {
+                let by;
+                if (alt) { by = y + 1 <= (per + 1) / 2 ? 2 * y : (per - (y + 1)) * 2 + 1; by = per - by - 1; }
+                else if (!zig || x % 2 === 0) by = b2t ? y : per - y - 1;
+                else by = b2t ? per - y - 1 : y;
+                let n1;
+                if (alt) n1 = y + 1 <= (per + 1) / 2 ? 2 * y : (per - (y + 1)) * 2 + 1;
+                else {
+                    n1 = fromCentre ? y : per - y - 1;
+                    if (zig && x % 2 > 0) n1 = fromCentre ? per - y - 1 : y;
+                }
+                const r = 0.5 + n1 + hollow * 2 * per / 100;
+                nodes.push({ bx: ltor ? x : arms - x - 1, by, pts: [{ x: r * Math.cos(ang), y: r * Math.sin(ang) }] });
+            }
+            ang += ltor ? inc : -inc;
+        }
+        boxed(a, nodes.flatMap(n => n.pts));
+        return { nodes, bufW: arms, bufH: per };
+    }
+
+    // WreathModel::InitWreath: a ring drawn in buffer cells, centred.
+    function wreathGeom(a) {
+        const total = Math.max(1, parm(a, 'NumStrings', 'parm1', 1) * parm(a, 'NodesPerString', 'parm2', 50));
+        const off = Math.floor(total / 2), r = off;
+        const b2t = isBotToTop(a), ltor = isLtoR(a);
+        let pct = b2t ? 0.5 : 0, incr = 1 / total;
+        if (ltor !== b2t) incr = -incr;
+        const W = total + 1, nodes = [];
+        for (let n = 0; n < total; n++) {
+            const bx = Math.trunc(r * Math.sin(pct * 2 * Math.PI) + off + 0.5), by = Math.trunc(r * Math.cos(pct * 2 * Math.PI) + off + 0.5);
+            nodes.push({ bx, by, pts: [{ x: bx - Math.floor(W / 2), y: by - Math.floor(W / 2) }] });
+            pct += incr; if (pct >= 1) pct -= 1; if (pct < 0) pct += 1;
+        }
+        boxed(a, nodes.flatMap(n => n.pts));
+        return { nodes, bufW: W, bufH: W };
+    }
+
+    // SphereModel::SetSphereCoord: a vertical matrix wrapped round a globe.
+    function sphereGeom(a) {
+        const { nodes, strands, pps } = matrixWiring(a);
+        const W = strands, H = pps;
+        const R = Math.max(W, H) / 1.8 / 2;
+        const deg = num(a.Degrees, 360), lat0 = num(a.StartLatitude, -86), lat1 = num(a.EndLatitude, 86);
+        const rad = d => d * Math.PI / 180;
+        const remove = rad(360 - deg), fudge = rad((360 - deg) / W);
+        const h0 = rad(360) / 4 + 0.003 - remove / 2, hInc = (-rad(360) + remove - fudge) / W;
+        const v0 = rad(lat0 - 90), vInc = (rad(-lat0) + rad(lat1)) / Math.max(1, H - 1);
+        for (const n of nodes) {
+            const h = h0 + n.bx * hInc, v = v0 + n.by * vInc, sv = Math.sin(v);
+            n.pts.push({ x: R * Math.cos(h) * sv, y: R * Math.cos(v), z: R * Math.sin(h) * sv });
+        }
+        // Spheres saved before version 8 were drawn squashed; xLights rescales
+        // them on load to keep their size (DeserializeSphere).
+        let at = a;
+        if (!(int(a.versionNumber, 0) >= 8)) {
+            const k = H / Math.max(H, W);
+            at = { ...a, ScaleX: String(num(a.ScaleX, 1) * k / 1.8), ScaleZ: String(num(a.ScaleZ, 1) * k / 1.8), ScaleY: String(num(a.ScaleY, 1) * k) };
+        }
+        boxed(at, nodes.flatMap(n => n.pts), 0.1);
+        return { nodes, bufW: W, bufH: H };
+    }
+
+    // MultiPoint: one light at each placed point, in order.
+    function multiPointGeom(a) {
+        const raw = (a.PointData || '').split(',').map(Number).filter(Number.isFinite);
+        const sx = num(a.ScaleX, 1), sy = num(a.ScaleY, 1), wx = num(a.WorldPosX), wy = num(a.WorldPosY);
+        const nodes = [];
+        for (let i = 0; i + 1 < raw.length; i += 3) nodes.push({ bx: nodes.length, by: 0, pts: [{ x: wx + raw[i] * sx, y: wy + raw[i + 1] * sy }] });
+        if (!nodes.length) return pointGeom(a);
+        return { nodes, bufW: nodes.length, bufH: 1 };
+    }
+
+    // ChannelBlock: single channels in a row along its line.
+    function channelBlockGeom(a) {
+        const n = Math.max(1, parm(a, 'NumChannels', 'parm1', 1));
+        const nodes = [];
+        for (let i = 0; i < n; i++) nodes.push({ bx: i, by: 0, pts: [{ x: i + 0.5, y: 0 }] });
+        twoPoint(a, nodes.flatMap(p => p.pts), n);
+        return { nodes, bufW: n, bufH: 1 };
     }
 
     function pointGeom(a) {

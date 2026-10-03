@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to use Lights Auto Sequencer</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .guide { max-width: 860px; margin: 0 auto; padding: 8px 16px 48px; line-height: 1.6; }
+  .guide h2 { margin: 36px 0 8px; font-size: 21px; }
+  .guide h3 { margin: 22px 0 6px; font-size: 16px; }
+  .guide p, .guide li { font-size: 15px; }
+  .guide ol.steps { counter-reset: s; list-style: none; padding: 0; }
+  .guide ol.steps > li { counter-increment: s; position: relative; padding: 14px 16px 14px 60px; margin: 0 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .guide ol.steps > li::before { content: counter(s); position: absolute; left: 16px; top: 14px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: grid; place-items: center; }
+  .guide ol.steps > li h3 { margin: 2px 0 4px; }
+  .guide .tip { border-left: 4px solid var(--wave); padding: 6px 12px; margin: 8px 0; background: color-mix(in srgb, var(--wave) 9%, transparent); border-radius: 0 8px 8px 0; }
+  .guide kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--bg); }
+  .guide .toc { columns: 2; font-size: 14px; }
+  .guide dt { font-weight: 650; margin-top: 12px; }
+  .guide dd { margin: 2px 0 0 0; }
+  .guide .cta { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
+  @media (max-width: 640px) { .guide .toc { columns: 1; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <h1><a href="./" style="color:inherit;text-decoration:none">Lights Auto Sequencer</a> <span class="sub">how to use it</span></h1>
+</header>
+
+<main class="guide">
+  <p>Lights Auto Sequencer turns a song into an <b>xLights sequence</b>. It finds the beats, the parts of the song
+  and the words, suggests which props light up and how, lets you watch it on a picture of your house, and saves a
+  <code>.xsq</code> file that xLights opens and renders like any other sequence. Everything runs in your browser:
+  your song and your show are never uploaded.</p>
+
+  <div class="cta">
+    <a class="btn primary" href="./?tour=1">Open the app with the guided tour</a>
+    <a class="btn" href="./">Just open the app</a>
+  </div>
+
+  <h2>Before you start</h2>
+  <ul>
+    <li><b>Use Chrome or Edge on a computer.</b> They can open your show folder and run the voice and speech models on
+      your graphics card. Firefox and Safari work, but more slowly and with fewer options; phones are too small.</li>
+    <li><b>Have xLights set up already.</b> The app reads your layout (models, groups, house photo) from your xLights
+      show folder: the folder that holds <code>xlights_rgbeffects.xml</code> and <code>xlights_networks.xml</code>.</li>
+    <li><b>An MP3 of the song.</b> Any song file your browser can play works.</li>
+  </ul>
+
+  <h2>Contents</h2>
+  <ol class="toc">
+    <li><a href="#song">Load a song</a></li>
+    <li><a href="#beat">Check the beat</a></li>
+    <li><a href="#parts">Check the song's parts</a></li>
+    <li><a href="#words">Find the words (optional)</a></li>
+    <li><a href="#show">Open your show</a></li>
+    <li><a href="#photo">Line up your house photo</a></li>
+    <li><a href="#suggest">Get a starting plan</a></li>
+    <li><a href="#steer">Steer the ideas</a></li>
+    <li><a href="#tweak">Change parts by hand</a></li>
+    <li><a href="#save">Save your work</a></li>
+    <li><a href="#xlights">Into xLights</a></li>
+    <li><a href="#faq">Questions and fixes</a></li>
+  </ol>
+
+  <h2>Part 1: the song</h2>
+  <ol class="steps">
+    <li id="song">
+      <h3>Load a song</h3>
+      <p>Drop an MP3 onto the page, or press <i>choose a file</i>. In a few seconds the app works out the tempo, the
+      beats and bars, the loud and quiet parts, and the drum hits.</p>
+    </li>
+    <li id="beat">
+      <h3>Check the beat</h3>
+      <p>Press <b>Play</b> and tick <b>Beat click</b>: you hear a click on every beat, a higher one on the first beat of each
+      bar. If the clicks drift or sit between the drums, fix it in the <b>Tempo grid</b> panel (<b>½ tempo</b> or <b>2× tempo</b>,
+      <b>Tap tempo</b> along with the song, or change which beat starts a bar). Everything else is built on this grid, so it is worth a minute.</p>
+      <p class="tip">Press <kbd>Space</kbd> to play or pause and <kbd>Home</kbd> to go back to the start.</p>
+    </li>
+    <li id="parts">
+      <h3>Check the song's parts</h3>
+      <p>The app splits the song into parts (verse, chorus, ...). Its names are guesses: in the <b>Sections</b> panel, rename parts so they match
+      what you hear, <b>split</b> a part where the music changes, <b>join</b> two parts, or drag a boundary in the
+      timeline. Each part gets its own lights later, and parts with the same name ("Chorus 1", "Chorus 2") can share
+      ideas.</p>
+    </li>
+    <li id="words">
+      <h3>Find the words (optional)</h3>
+      <p>For singing faces and words on a matrix, go to <b>Words &amp; vocals</b> and press <b>Find words &amp; vocals</b>. Paste the lyrics first if you
+      have them: the timing comes out better. The first time, the browser downloads the voice and speech models
+      (about 400 MB, kept for next time), and working through a song takes a few minutes. You can drag any word in the
+      timeline if it lands in the wrong place.</p>
+      <p class="tip">Want the timing in xLights directly? <b>Export timing → Download .xtiming</b> saves the beats, parts and words as
+      an <code>.xtiming</code> file.</p>
+    </li>
+  </ol>
+
+  <h2>Part 2: the lights</h2>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li id="show">
+      <h3>Open your show</h3>
+      <p>Go to <b>2. Make a sequence</b> and choose your xLights show folder (<b>Your xLights show</b>). The app reads your models, groups,
+      submodels, singing faces and house photo. It remembers the folder for next time.</p>
+    </li>
+    <li id="photo">
+      <h3>Line up your house photo</h3>
+      <p>If the photo doesn't sit under the lights, press <b>Line up photo…</b> and drag it, or use the mouse wheel to
+      size it. This only changes how the preview looks.</p>
+    </li>
+    <li id="suggest">
+      <h3>Get a starting plan</h3>
+      <p>Press <b>Suggest a plan</b>. The app picks props for every part, puts steady looks under one or two props
+      that carry the beat, makes loud parts brighter and fuller than quiet ones, builds up before a chorus and lands
+      on its first beat. With <b>Try a few, keep the best fit</b> ticked it makes four ideas and keeps the one that
+      follows the music best. Don't like it? Press <b>🎲 Another idea</b>.</p>
+      <p>Press <b>Play</b> to watch it on your house. The <b>Fit with the music</b> score shows how well the lights
+      follow the loudness and the beat, and whether loud parts are brighter.</p>
+    </li>
+    <li id="steer">
+      <h3>Steer the ideas</h3>
+      <ul>
+        <li><b>Feeling</b> (peaceful, joyful, playful, powerful, magical) and <b>Intensity</b> change the kind of effects and how busy they are.</li>
+        <li><b>Colours for ideas</b> picks the colour scheme; <b>Edit colour schemes…</b> makes your own.</li>
+        <li><b>Prop mix…</b> uses a prop more, less, always or never, in every part or one kind of part.</li>
+        <li><b>Prop types…</b> tells the app what a prop is when its name doesn't say ("Big Tree" is a mega tree).</li>
+        <li><b>Leave out of ideas…</b> keeps props out completely.</li>
+        <li><b>For:</b> chooses which parts the next idea changes. The 🎲 tick on each part does the same.</li>
+      </ul>
+    </li>
+    <li id="tweak">
+      <h3>Change parts by hand</h3>
+      <p>Open a part to see its <b>light rows</b>. Each row says which lights, when (the whole time, every beat, drum
+      hits, while someone sings, ...), the effect and the colours. Click a row to change it. Handy tools:</p>
+      <ul>
+        <li><b>🔁 Loop</b> plays one part over and over while you work on it.</li>
+        <li><b>🎲 Randomize</b> gives just that part a new idea.</li>
+        <li><b>Untick a row</b> to keep it: new ideas fill in around it (it shows a 🔒).</li>
+        <li><b>Solo / Mute</b> show or hide a row in the preview only.</li>
+        <li><b>Copy to…</b> copies a part's lights to other parts.</li>
+        <li><b>🎨</b> changes only the colours.</li>
+        <li><b>Click a prop on the house</b> to see what lights it, or drag a box to pick several.</li>
+      </ul>
+      <p class="tip">Every change can be undone with <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</p>
+    </li>
+    <li id="save">
+      <h3>Save your work</h3>
+      <p><b>Save project</b> (<kbd>Ctrl</kbd>+<kbd>S</kbd>) writes a small <code>.lightseq.json</code> file with the beat grid, your parts,
+      the words and the whole light plan. Open it later with <b>Open project…</b>; the app finds the song again by
+      itself.</p>
+    </li>
+    <li id="xlights">
+      <h3>Into xLights</h3>
+      <p>In <b>Save the sequence</b>, press <b>Save into show folder</b> (or <b>Download .xsq</b>). Open the sequence
+      in xLights, render it, and play. It includes timing tracks for the beats, bars, song parts and words, so you can
+      keep adding effects in xLights the usual way.</p>
+    </li>
+  </ol>
+
+  <h2 id="faq">Questions and fixes</h2>
+  <dl>
+    <dt>Is my music or show uploaded anywhere?</dt>
+    <dd>No. Everything runs in your browser. Only the voice and speech models are downloaded (once).</dd>
+    <dt>The clicks don't match the drums.</dt>
+    <dd>Fix the tempo first (step 2): try <b>½ tempo</b> or <b>2× tempo</b>, or <b>Tap tempo</b> along with the song.</dd>
+    <dt>A prop gets odd effects, or isn't used.</dt>
+    <dd>Use <b>Prop types…</b> to say what it is, and <b>Prop mix…</b> to use it more.</dd>
+    <dt>A prop shows as a single dot in the preview.</dt>
+    <dd>That kind of model isn't drawn yet (for example DMX fixtures or image models). The saved sequence still
+      works in xLights. Please report it on <a href="https://github.com/socman1984-hub/LightsAutoSequencer/issues">GitHub</a>.</dd>
+    <dt>"Find words" is slow.</dt>
+    <dd>The first run downloads the models. In Chrome or Edge the models use your graphics card; other browsers fall
+      back to the processor, which is slower.</dd>
+    <dt>The ideas don't look like my style.</dt>
+    <dd>The ideas start from one person's sequencing style (which effects suit which props, learned from 44 finished
+      sequences). Use Feeling, Prop mix and Prop types to steer them, and keep the rows you like.</dd>
+  </dl>
+
+  <p class="muted small">An independent tool for xLights, not made by the xLights project. Free and open source (GPLv3).
+  <a href="https://github.com/socman1984-hub/LightsAutoSequencer">Source and issues on GitHub</a>.</p>
+</main>
+</body>
+</html>

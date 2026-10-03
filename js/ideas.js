@@ -45,16 +45,60 @@ const Ideas = (() => {
         ['peace', /peace/i],
         ['window', /window/i],
         ['flood', /flood/i],
-        ['roof', /roof|outline|house|vertical|horizontal|eave|gutter/i],
+        ['wreath', /wreath|circle|ring/i],
+        ['roof', /roof|outline|house|vertical|horizontal|eave|gutter|icicle/i],
     ];
 
+    function nameClass(name) {
+        for (const [c, re] of CLASSES) if (re.test(name)) return c === 'face' ? null : c;
+        return null;
+    }
+
+    // show.propTypes: what the user said a prop is (name -> class, or 'skip').
     function classify(show, name) {
+        const set = show.propTypes && show.propTypes[name];
+        if (set) return set;
+        return guessClass(show, name);
+    }
+    function guessClass(show, name, seen = new Set()) {
+        const g = show.groups.get(name);
+        if (g && !seen.has(name)) {
+            // A group is what most of its members are; its name only breaks a tie
+            // ("EVERYTHING BUT STARBURST" is not a group of stars).
+            seen.add(name);
+            const counts = new Map();
+            for (const mem of g.members) {
+                const c = show.propTypes && show.propTypes[mem] ? show.propTypes[mem] : guessClass(show, mem, seen);
+                counts.set(c, (counts.get(c) || 0) + 1);
+            }
+            const total = g.members.length;
+            const byName = nameClass(name);
+            let best = null, bestN = 0;
+            for (const [c, n] of counts) if (c !== 'generic' && n > bestN) { best = c; bestN = n; }
+            if (byName && (counts.get(byName) || 0) >= total * 0.5) return byName;
+            if (best && bestN >= total * 0.6) return best;
+            if (byName && !counts.size) return byName;
+            return 'generic';
+        }
         const m = show.models.get(name);
         if (m && m.faces.length) return 'face';
-        for (const [c, re] of CLASSES) if (re.test(name)) return c === 'face' && !(m && m.faces.length) ? 'generic' : c;
+        // "Model/SubModel": a part named for a shape ("MiniTree1/Star") is that
+        // shape; an outline or segment of a prop is still that prop.
+        if (!m && name.includes('/')) {
+            const sub = nameClass(name.slice(name.indexOf('/') + 1));
+            if (sub && sub !== 'roof') return sub;
+            return guessClass(show, name.slice(0, name.indexOf('/')), seen);
+        }
+        const nc = nameClass(name);
+        if (nc) return nc;
         if (m) {
-            if (m.type === 'Matrix') return 'matrix';
-            if (m.type === 'Tree') return 'megatree';
+            if (/Matrix$/.test(m.type)) return 'matrix';
+            if (/^Tree/.test(m.type)) return m.nodes.length < 400 ? 'minitree' : 'megatree';
+            if (m.type === 'Icicles') return 'roof';
+            if (m.type === 'Candy Canes') return 'cane';
+            if (m.type === 'Spinner') return 'spinner';
+            if (m.type === 'Circle' || m.type === 'Wreath') return 'wreath';
+            if (m.type === 'Sphere') return 'star';
             if (m.type === 'Arches') return 'arch';
             if (m.type === 'Window Frame') return 'window';
             if (m.type === 'Star') return 'star';
@@ -78,6 +122,7 @@ const Ideas = (() => {
         window: { marquee: 41, chase: 17, on: 15, wash: 10 },
         flood: { on: 56, wash: 14 },
         star: { twinkle: 30, on: 30, shockwave: 20 },
+        wreath: { chase: 30, pinwheel: 20, shockwave: 20, wash: 15, twinkle: 10 },
         generic: { chase: 20, wash: 20, twinkle: 15, bars: 10, on: 10, shockwave: 10, spirals: 5, butterfly: 5 },
     };
     // A feeling the user can pick for ideas: which effects it favours, how fast
@@ -125,7 +170,7 @@ const Ideas = (() => {
             if (/\bno\b|only|-\d+$|old|override|^all$|^all \(/i.test(g)) continue;
             if (excluded.size && !clean(g)) continue;
             const c = classify(show, g);
-            if (c === 'generic' || c === 'face') continue;
+            if (c === 'generic' || c === 'face' || c === 'skip') continue;
             const cur = byClass.get(c);
             const score = (/^all/i.test(g) ? 1e6 : 0) + size(g);
             if (!cur || score > cur.score) byClass.set(c, { score, targets: [g] });
@@ -133,11 +178,12 @@ const Ideas = (() => {
         for (const m of show.models.values()) {
             if (!inUse(m) || excluded.has(m.name)) continue;
             const c = classify(show, m.name);
+            if (c === 'generic' || c === 'skip') continue;
             if (c === 'face') {
                 const cur = byClass.get('face') || { score: 0, targets: [] };
                 cur.targets.push(m.name);
                 byClass.set('face', cur);
-            } else if (!byClass.has(c) && c !== 'generic') {
+            } else if (!byClass.has(c)) {
                 byClass.set(c, { score: 0, targets: [m.name], models: true });
             } else if (byClass.get(c).models) {
                 byClass.get(c).targets.push(m.name);
@@ -342,7 +388,7 @@ const Ideas = (() => {
     const CLASS_LABELS = {
         megatree: 'Mega tree', minitree: 'Mini trees', arch: 'Arches', cane: 'Candy canes', spinner: 'Spinners',
         snowflake: 'Snowflakes', matrix: 'Matrix', cross: 'Crosses', peace: 'Peace stakes', window: 'Windows',
-        flood: 'Floods', star: 'Stars', roof: 'House lines', generic: 'Other',
+        flood: 'Floods', star: 'Stars', roof: 'House lines and icicles', wreath: 'Wreaths and circles', generic: 'Other', face: 'Singing face', skip: 'Not a prop (ideas skip it)',
     };
 
     function level(mix, key, kind) {
@@ -601,5 +647,5 @@ const Ideas = (() => {
         return fade >= 1.5 ? Math.round(fade * 10) / 10 : 0;
     }
 
-    return { sectionIdea, partIdea, planIdea, partEnergies, phrases, classify, candidates, mixEntries, FEELS, INTENSITIES, LEVELS };
+    return { guessClass, CLASS_LABELS, sectionIdea, partIdea, planIdea, partEnergies, phrases, classify, candidates, mixEntries, FEELS, INTENSITIES, LEVELS };
 })();

@@ -33,6 +33,7 @@
             setShowStatus('Reading your show…');
             const show = await loader();
             S.show = show;
+            loadPropTypes();
             const faces = [...show.models.values()].filter(m => m.faces.length).length;
             setShowStatus(`Show: "${show.folderName}" · ${show.models.size} models, ${show.groups.size} groups, ${show.nodeCount.toLocaleString()} lights${faces ? `, ${faces} singing face${faces > 1 ? 's' : ''}` : ''}${show.backgroundUrl ? '' : ' · no house photo found'}`);
             // once loaded the panel is one line; the folder can still be changed
@@ -1350,6 +1351,61 @@
     }
 
     $('mixBtn').addEventListener('click', () => { drawMix(); mixDlg.showModal(); });
+
+    // ---------- prop types: what a prop is, when its name doesn't say ----------
+
+    const typesKey = () => 'xlweb-proptypes:' + (S.show ? S.show.folderName : '');
+    function loadPropTypes() {
+        let v = {};
+        try { v = JSON.parse(localStorage.getItem(typesKey()) || '{}') || {}; } catch (e) { v = {}; }
+        S.show.propTypes = v;
+        markTypesBtn();
+    }
+    function savePropTypes() {
+        try { localStorage.setItem(typesKey(), JSON.stringify(S.show.propTypes || {})); } catch (e) { /* storage blocked */ }
+        markTypesBtn();
+    }
+    function markTypesBtn() {
+        const n = Object.keys((S.show && S.show.propTypes) || {}).length;
+        $('typesBtn').textContent = n ? `Prop types (${n} set)…` : 'Prop types…';
+    }
+    const TYPE_CHOICES = ['megatree', 'minitree', 'arch', 'cane', 'spinner', 'wreath', 'snowflake', 'star', 'matrix', 'cross', 'peace', 'window', 'flood', 'roof', 'generic', 'skip'];
+    function drawTypes() {
+        const sh = S.show;
+        const find = $('typesFind').value.trim().toLowerCase();
+        const onlyUnknown = $('typesUnknown').checked;
+        const label = c => Ideas.CLASS_LABELS[c] || c;
+        const row = (name, kind) => {
+            const guess = Ideas.guessClass(sh, name);
+            if (guess === 'face') return '';
+            const set = sh.propTypes[name] || '';
+            if (onlyUnknown && guess !== 'generic' && !set) return '';
+            if (find && !name.toLowerCase().includes(find)) return '';
+            return `<tr><td>${esc(name)}<div class="muted small">${esc(kind)}</div></td><td><select data-name="${esc(name)}">
+                <option value="">Guess: ${esc(label(guess))}</option>
+                ${TYPE_CHOICES.map(c => `<option value="${c}" ${set === c ? 'selected' : ''}>${esc(label(c))}</option>`).join('')}
+            </select></td></tr>`;
+        };
+        const groups = [...sh.groups.keys()].map(g => row(g, `group of ${Show.resolveTarget(sh, g).length.toLocaleString()} lights`)).join('');
+        const models = [...sh.models.values()].filter(m => m.attrs.Controller !== 'No Controller').map(m => row(m.name, `${m.type}, ${m.nodes.length.toLocaleString()} lights`)).join('');
+        $('typesTable').innerHTML = (groups ? `<tr><th colspan="2">Groups</th></tr>${groups}` : '') + (models ? `<tr><th colspan="2">Props</th></tr>${models}` : '') ||
+            '<tr><td class="muted">Nothing to show.</td></tr>';
+        $('typesTable').querySelectorAll('select').forEach(sel => sel.addEventListener('change', () => {
+            if (sel.value) sh.propTypes[sel.dataset.name] = sel.value; else delete sh.propTypes[sel.dataset.name];
+            savePropTypes();
+        }));
+    }
+    $('typesBtn').addEventListener('click', () => {
+        if (!S.show) return;
+        const unknown = [...S.show.models.values()].some(m => Ideas.guessClass(S.show, m.name) === 'generic');
+        $('typesUnknown').checked = unknown && !Object.keys(S.show.propTypes || {}).length;
+        drawTypes();
+        $('typesDlg').showModal();
+    });
+    $('typesFind').addEventListener('input', drawTypes);
+    $('typesUnknown').addEventListener('change', drawTypes);
+    $('typesReset').addEventListener('click', () => { S.show.propTypes = {}; savePropTypes(); drawTypes(); });
+    $('typesDlg').addEventListener('close', () => renderMixNote());
     $('mixReset').addEventListener('click', () => {
         commit(() => { mixData().levels = {}; }, { render: false });
         drawMix();
