@@ -470,6 +470,7 @@
         if (!sec) return;
         if (S.loopId) S.loopId = id;    // keep looping, now this section
         XLWeb.seek(sec.s + 0.001);
+        S.nowId = id;
         S.open.add(id);
         saveOpen();
         renderPlan();
@@ -757,6 +758,9 @@
         if (nowId !== S.nowId) {
             S.nowId = nowId;
             document.querySelectorAll('#scrubParts span, .sec-card').forEach(el => el.classList.toggle('now', el.dataset.id === nowId));
+            if (S.onlyNow && nowId && nowId !== S.shownId) {
+                if (planBusy()) S.planStale = true; else renderPlan();
+            }
         }
     }
     requestAnimationFrame(loop);
@@ -1014,6 +1018,12 @@
         return parts.join(' ') + (c.rows.length > 4 ? ` <span class="muted">+${c.rows.length - 4} more</span>` : '');
     }
 
+    // someone is typing or choosing in the plan: don't redraw under them
+    function planBusy() {
+        const a = document.activeElement;
+        return !!(a && $('plan').contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName) && a.type !== 'checkbox');
+    }
+
     function renderPlan() {
         const box = $('plan');
         const song = XLWeb.song();
@@ -1033,12 +1043,26 @@
         isel.value = S.plan.ideaIntensity || 'auto';
         $('ideaMatrixWords').checked = !!S.plan.ideaMatrixWords;
         $('ideaPhrased').checked = S.plan.ideaPhrased !== false;
+        $('ideaAlike').checked = !!S.plan.ideaAlike;
+        $('onlyNow').checked = !!S.onlyNow;
         $('goSection').innerHTML = '<option value="">Go to a section…</option>' + song.sections.map(s => `<option value="${s.id}">${esc(s.name)} (${fmt(s.s)})</option>`).join('');
         $('planUndo').disabled = !S.history.length;
         $('planRedo').disabled = !S.future.length;
         renderIdeaFor();
 
         box.innerHTML = '';
+        if (S.onlyNow) {
+            const t = XLWeb.time();
+            const cur = song.sections.find(s => s.id === S.nowId) || song.sections.find(s => t >= s.s && t < s.e) || song.sections[0];
+            S.shownId = cur ? cur.id : null;
+            const note = document.createElement('div');
+            note.className = 'only-now-note';
+            note.innerHTML = `<span>Showing only <b>${esc(cur ? cur.name : '')}</b>, the part that's playing. It follows the song; use ⏮ ⏭ under the preview or <i>Go to a section</i> to move.</span><button type="button" class="link">Show all parts</button>`;
+            note.querySelector('button').addEventListener('click', () => { S.onlyNow = false; $('onlyNow').checked = false; try { localStorage.setItem('xlweb-onlynow', '0'); } catch (e) { /* storage blocked */ } renderPlan(); });
+            box.appendChild(note);
+            if (cur) { S.open.add(cur.id); box.appendChild(card(cur, false)); }
+            return;
+        }
         box.appendChild(card({ id: 'whole', name: 'Whole song', s: 0, e: song.model.duration }, true));
         for (const s of song.sections) box.appendChild(card(s, false));
     }
@@ -1298,6 +1322,21 @@
     });
     $('ideaMatrixWords').addEventListener('change', e => { S.plan.ideaMatrixWords = e.target.checked; savePlan(); });
     $('ideaPhrased').addEventListener('change', e => { S.plan.ideaPhrased = e.target.checked; savePlan(); });
+    $('ideaAlike').addEventListener('change', e => { S.plan.ideaAlike = e.target.checked; savePlan(); });
+
+    // Idea settings fold away to save room; remembered in this browser.
+    try { $('ideaSettings').open = localStorage.getItem('xlweb-ideasettings') !== '0'; } catch (e) { $('ideaSettings').open = true; }
+    $('ideaSettings').addEventListener('toggle', () => { try { localStorage.setItem('xlweb-ideasettings', $('ideaSettings').open ? '1' : '0'); } catch (e) { /* storage blocked */ } });
+
+    // Only the part that's playing: the list shows just that part, opened, and
+    // follows the song. A change made while typing waits until the field is left.
+    try { S.onlyNow = localStorage.getItem('xlweb-onlynow') === '1'; } catch (e) { S.onlyNow = false; }
+    $('onlyNow').addEventListener('change', e => {
+        S.onlyNow = e.target.checked;
+        try { localStorage.setItem('xlweb-onlynow', S.onlyNow ? '1' : '0'); } catch (err) { /* storage blocked */ }
+        renderPlan();
+    });
+    $('plan').addEventListener('focusout', () => { if (S.planStale) setTimeout(() => { if (S.planStale && !planBusy()) { S.planStale = false; renderPlan(); } }, 0); });
 
     // ---------- prop mix ----------
 

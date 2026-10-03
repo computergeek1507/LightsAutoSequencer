@@ -233,35 +233,67 @@
             <button type="button" class="btn small" id="planRedo" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
           </div>
         </div>
-        <p class="panel-note">Every section has its own lights. Open a section to choose which models, groups or parts of models light up, how, and when (the whole time, or on beats, drum hits or singing). Click the strip under the preview to play from there; Ctrl+click a part to open its lights.</p>
-        <div class="idea-bar">
-          <button type="button" class="btn primary" id="suggestPlan">🎲 Suggest a plan</button>
-          <details class="idea-for" id="ideaFor">
-            <summary>For: <b id="ideaForLabel">every section</b></summary>
-            <div class="idea-for-pop">
-              <div class="btnrow tight" id="ideaQuick"></div>
-              <div class="pick-list" id="ideaList"></div>
+        <p class="panel-note">Every part of the song has its own light rows: which lights, when (the whole time, on beats, drum hits or singing), the effect and its colours. Let <b>Ideas</b> fill them in, then change anything by hand.</p>
+
+        <section class="ctl-group">
+          <div class="ctl-head"><h3>Ideas</h3><span class="muted small">The app lights the parts for you. Rows you untick (🔒) are kept.</span></div>
+          <div class="ctl-row">
+            <button type="button" class="btn primary" id="suggestPlan">🎲 Suggest a plan</button>
+            <details class="idea-for" id="ideaFor">
+              <summary>For: <b id="ideaForLabel">every section</b></summary>
+              <div class="idea-for-pop">
+                <div class="btnrow tight" id="ideaQuick"></div>
+                <div class="pick-list" id="ideaList"></div>
+              </div>
+            </details>
+          </div>
+          <details class="ctl-more" id="ideaSettings">
+            <summary>Idea settings</summary>
+            <div class="ctl-cols">
+              <div class="ctl-col">
+                <h4>Look</h4>
+                <label>Feeling <select id="ideaFeel"></select></label>
+                <label>Intensity <select id="ideaIntensity"></select></label>
+                <label>Colours <select id="ideaScheme"></select></label>
+                <button type="button" class="btn small" id="editSchemes">Edit colour schemes…</button>
+              </div>
+              <div class="ctl-col">
+                <h4>Props</h4>
+                <button type="button" class="btn small" id="mixBtn" title="Use certain props more or less in each part of the song">Prop mix…</button>
+                <span class="hint">Use props more, less, always or never.</span>
+                <button type="button" class="btn small" id="typesBtn" title="Tell ideas what each prop is when its name doesn't say">Prop types…</button>
+                <span class="hint">Say what a prop is when its name doesn't.</span>
+                <button type="button" class="btn small" id="ideaExcludeBtn" title="Props, groups or parts of props that ideas must never use">Leave out of ideas…</button>
+                <span class="muted small" id="ideaExcludeTxt"></span>
+              </div>
+              <div class="ctl-col">
+                <h4>How ideas are made</h4>
+                <label class="chk opt"><input type="checkbox" id="ideaAlike"> <span>Same look for parts with the same name<span class="hint">Every Chorus gets the same effects, every Verse the same, and so on. Louder repeats light more props. Off: each part gets its own idea.</span></span></label>
+                <label class="chk opt"><input type="checkbox" id="ideaPhrased" checked> <span>Change with the music inside long parts<span class="hint">Where a long part gets louder or softer, its lights change a little there.</span></span></label>
+                <label class="chk opt"><input type="checkbox" id="ideaBest" checked> <span>Try 4 ideas, keep the best fit<span class="hint">Keeps the idea that follows the music best (the score under these controls).</span></span></label>
+                <label class="chk opt"><input type="checkbox" id="ideaMatrixWords"> <span>Words on the matrix in choruses<span class="hint">For new ideas. To add words to what's planned now, use 📝 below.</span></span></label>
+              </div>
             </div>
           </details>
-          <label>Feeling <select id="ideaFeel"></select></label>
-          <label>Intensity <select id="ideaIntensity"></select></label>
-          <label>Colours for ideas <select id="ideaScheme"></select></label>
-          <button type="button" class="btn small" id="editSchemes">Edit colour schemes…</button>
-          <label class="chk" title="Repeats of a part (all the Choruses) share their effects; louder repeats light more props, quieter ones fewer"><input type="checkbox" id="ideaAlike" checked> Same idea for repeats</label>
-          <label class="chk" title="Makes a few ideas, measures how well each one follows the music, and keeps the best"><input type="checkbox" id="ideaBest" checked> Try a few, keep the best fit</label>
-          <label class="chk" title="A long part changes a little where its energy changes: more or fewer props, the other colour, moving things turn round"><input type="checkbox" id="ideaPhrased" checked> Change with the energy inside long parts</label>
-          <label class="chk" title="The matrix shows the words in choruses and stays a dim, slow background everywhere else"><input type="checkbox" id="ideaMatrixWords"> Words on the matrix in choruses</label>
-          <button type="button" class="btn small" id="mixBtn" title="Use certain props more or less in each part of the song">Prop mix…</button>
-          <button type="button" class="btn small" id="typesBtn" title="Tell ideas what each prop is when its name doesn't say">Prop types…</button>
-          <button type="button" class="btn small" id="ideaExcludeBtn" title="Props, groups or parts of props that ideas must never use">Leave out of ideas…</button>
-          <span class="muted small" id="ideaExcludeTxt"></span>
-        </div>
-        <div class="plan-nav">
-          <select id="goSection" aria-label="Go to a section"></select>
-          <button type="button" class="btn small" id="expandAll">Expand all</button>
-          <button type="button" class="btn small" id="collapseAll">Collapse all</button>
-          <button type="button" class="btn small" id="recolourBtn" title="Change only the colours of planned lights">🎨 Change colours…</button>
-          <button type="button" class="btn small" id="wordsBtn" title="Show the sung words on the matrix in the parts you choose">📝 Words on the matrix…</button>
+        </section>
+
+        <div class="ctl-pair">
+          <section class="ctl-group">
+            <div class="ctl-head"><h3>Change what's planned</h3></div>
+            <div class="ctl-row">
+              <button type="button" class="btn small" id="recolourBtn" title="Change only the colours of planned lights">🎨 Change colours…</button>
+              <button type="button" class="btn small" id="wordsBtn" title="Show the sung words on the matrix in the parts you choose">📝 Words on the matrix…</button>
+            </div>
+          </section>
+          <section class="ctl-group">
+            <div class="ctl-head"><h3>View</h3></div>
+            <div class="ctl-row">
+              <select id="goSection" aria-label="Go to a section"></select>
+              <label class="chk" title="Shows just the part the song is in, opened, and follows along as it plays"><input type="checkbox" id="onlyNow"> Only the part that's playing</label>
+              <button type="button" class="btn small" id="expandAll">Expand all</button>
+              <button type="button" class="btn small" id="collapseAll">Collapse all</button>
+            </div>
+          </section>
         </div>
         <p id="planStatus" class="status" aria-live="polite"></p>
         <div id="fitBox" class="fit" hidden></div>

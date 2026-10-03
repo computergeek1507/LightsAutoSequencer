@@ -212,6 +212,11 @@ hosting account) is his to do; I can prepare everything up to that point.
 
 ## Done
 
+- **2026-10-03:** Plan controls grouped: *Ideas* (Suggest + For:, and a foldable *Idea
+  settings* with Look / Props / How ideas are made, each option with a one-line
+  explanation), *Change what's planned*, *View*. *View → Only the part that's playing*
+  shows just the current part, opened, following the song (waits while you type). *Same
+  idea for repeats* renamed *Same look for parts with the same name*, off by default.
 - **2026-10-03:** *📝 Words on the matrix…*: add the sung words to the matrix in chosen parts
   (choruses by default) on the current plan, with size, colour and dimming of the matrix's
   other lights; remove again; one undo step. (The older checkbox only shapes new ideas.)

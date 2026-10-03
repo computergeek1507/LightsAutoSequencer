@@ -114,7 +114,7 @@ Ctrl+Z undoes. Edits are kept per song (keyed by word position + word), survive
   section), replacing or adding. Copies are independent afterwards.
 - **Ideas** (`js/ideas.js`): *Suggest a plan* / *Another idea* for every section, or only the
   ones chosen under *For:* (quick picks like *Only Chorus*; the rest keep their lights) (option:
-  same idea for repeats of a kind), and *Randomize* per section, optionally limited to
+  optionally the same look for every part with the same name), and *Randomize* per section, optionally limited to
   that section's *lights to use*. Effect choices per prop are weighted by what the
   owner's own 44 sequences use on that kind of prop, and shifted by the section's energy.
   Undo/Redo (Ctrl+Z / Ctrl+Y on this tab) step back through tries.
@@ -148,7 +148,7 @@ Ctrl+Z undoes. Edits are kept per song (keyed by word position + word), survive
   the house builds up, holds its breath for 1.5 beats and lands with a flash; the lights
   fade when the song does.
 - *Fit with the music* under the plan scores it (0-100): does the house follow loudness,
-  does the beat show, are loud parts brighter. *Try a few, keep the best fit* makes four
+  does the beat show, are loud parts brighter. *Try 4 ideas, keep the best fit* makes four
   ideas and keeps the best one. Light rows have *Brightness %* and, for steady rows,
   *Fade at end*; each part has *Hold a breath at the end*.
 - A long part changes with its energy: where the music gets clearly louder or quieter
