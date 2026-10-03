@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lights Auto Sequencer</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>Lights Auto Sequencer <span class="sub">make xLights sequences in the browser</span></h1>
+</header>
+
+<main>
+  <div class="proj-banner" id="projBanner" role="status" aria-live="polite" hidden>
+    <div id="projBannerText"></div>
+    <div class="btnrow tight" id="projBannerBtns"></div>
+  </div>
+  <section id="drop" class="drop">
+    <input type="file" id="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac" hidden>
+    <p class="drop-title">Drop an MP3 here</p>
+    <p class="drop-hint">or <button type="button" id="pick" class="link">choose a file</button>, or <button type="button" id="openProj0" class="link">open a saved project</button>. Everything runs in your browser, so the song is never uploaded.</p>
+    <input type="file" id="projFile" accept=".json,application/json" hidden>
+    <p id="status" class="status" aria-live="polite"></p>
+  </section>
+
+  <section id="results" hidden>
+    <div class="songbar">
+      <div>
+        <div id="songName" class="song-name"></div>
+        <div id="songMeta" class="song-meta"></div>
+      </div>
+      <div class="transport">
+        <button type="button" id="toStart" class="btn" title="Back to the beginning (Home)" aria-label="Back to the beginning">⏮</button>
+        <button type="button" id="play" class="btn primary">Play</button>
+        <label class="chk"><input type="checkbox" id="click"> Beat click</label>
+        <label class="chk"><input type="checkbox" id="follow" checked> Follow</label>
+        <span id="clock" class="clock">0:00.000</span>
+      </div>
+      <div class="project">
+        <button type="button" class="btn small primary" id="saveProj" title="Save everything (Ctrl+S)">Save project</button>
+        <button type="button" class="btn small" id="openProj">Open project…</button>
+        <span id="projStatus" class="muted small"></span>
+      </div>
+      <nav class="tabs" role="tablist">
+        <button type="button" role="tab" class="tab" data-tab="song" aria-selected="true">1. Song &amp; words</button>
+        <button type="button" role="tab" class="tab" data-tab="seq" aria-selected="false">2. Make a sequence</button>
+      </nav>
+    </div>
+
+    <div class="tabpane" data-pane="song">
+    <div class="stats" id="stats"></div>
+
+    <div class="timeline-wrap">
+      <div class="zoom">
+        <span>Zoom</span>
+        <input type="range" id="zoom" min="0" max="100" value="0" aria-label="Zoom">
+      </div>
+      <div id="timeline" class="timeline" tabindex="0">
+        <canvas id="tl"></canvas>
+      </div>
+      <p class="hint">Click the timeline to seek. Scroll sideways to move, Ctrl+scroll to zoom. Turn on <b>Beat click</b> to hear whether the grid is in time.</p>
+    </div>
+
+    <div class="cols">
+      <div class="panel">
+        <h2>Tempo grid</h2>
+        <p class="panel-note">If the click drifts, fix it here. Everything that hangs off the beat updates.</p>
+        <div class="form">
+          <label>BPM <input type="number" id="bpm" step="0.01" min="40" max="240"></label>
+          <label>First beat (s) <input type="number" id="offset" step="0.001" min="0"></label>
+          <label>Beats per bar
+            <select id="meter"><option value="4">4</option><option value="3">3</option><option value="6">6</option></select>
+          </label>
+          <label>Downbeat is beat
+            <select id="downbeat"><option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option></select>
+          </label>
+        </div>
+        <div class="btnrow">
+          <button type="button" class="btn" id="half">½ tempo</button>
+          <button type="button" class="btn" id="double">2× tempo</button>
+          <button type="button" class="btn" id="tapBtn">Tap tempo</button>
+          <button type="button" class="btn" id="reset">Reset to detected</button>
+        </div>
+        <p id="gridFit" class="fit"></p>
+      </div>
+
+      <div class="panel">
+        <h2>Sections</h2>
+        <p class="panel-note">Found from where the sound changes. Make them your own: rename them, <b>split</b> one at the playhead to break it into parts, <b>join</b> neighbours, or drag a boundary in the timeline's <i>Sections</i> row. Each section gets its own lights in step 2.</p>
+        <div class="btnrow tight">
+          <button type="button" class="btn small" id="splitAtPlayhead">Split at playhead</button>
+          <button type="button" class="btn small" id="resetSections">Back to detected sections</button>
+          <span class="muted small" id="sectionsOwned" hidden>Your own sections (detection no longer changes them)</span>
+        </div>
+        <p class="status small" id="sectionNote" aria-live="polite"></p>
+        <div class="sec-scroll">
+        <table class="sections">
+          <thead><tr><th>Start</th><th>Length</th><th>Name</th><th>Energy</th><th></th></tr></thead>
+          <tbody id="sectionRows"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="vocalPanel">
+      <h2>Words &amp; vocals</h2>
+      <p class="panel-note">Separates the singing from the music, writes down the words with their timing, and tracks the melody. Everything runs on this computer. The first run downloads about 400 MB of models, which your browser keeps; after that a song takes a minute or two.</p>
+      <label class="lyrics-label" for="lyricsText">Song lyrics <span>(optional, but best. Paste the official lyrics and each line here becomes a line on your matrix. Leave it empty and the page writes down what it hears.)</span></label>
+      <textarea id="lyricsText" rows="7" spellcheck="false" placeholder="We got dust on our Bibles, brand-new iPhones&#10;No wonder why we feel this way&#10;…"></textarea>
+      <div class="btnrow">
+        <button type="button" class="btn primary" id="findWords">Find words &amp; vocals</button>
+        <button type="button" class="btn" id="useHeard" hidden>Start from what it heard</button>
+        <label class="chk" id="voiceOnlyWrap" hidden><input type="checkbox" id="voiceOnly"> Play the voice only</label>
+        <button type="button" class="btn" id="resetEdits" hidden>Undo all timing edits</button>
+      </div>
+      <p class="panel-note edit-help" id="editHelp" hidden><b>Fixing timing:</b> in the timeline's <i>Words</i> row, drag a word's left edge to move where it starts, or drag the word to move it. Drag a line in the <i>Lyrics</i> row to move the whole line. Starts snap to where the voice comes in (hold Alt to place freely). Click a word, then use ← → to nudge it 10 ms (Shift: 50 ms). Ctrl+Z undoes.</p>
+      <div class="vocal-status">
+        <progress id="vocalProg" max="1" value="0" hidden></progress>
+        <span id="vocalStatus" aria-live="polite"></span>
+      </div>
+      <div id="vocalResult" hidden>
+        <p id="vocalStats" class="fit good"></p>
+        <div class="lyric-scroll">
+          <table class="sections lyric-lines">
+            <thead><tr><th>Starts</th><th>Line</th></tr></thead>
+            <tbody id="lyricRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Export timing</h2>
+      <p class="panel-note">The <b>.xtiming</b> file imports straight into xLights: right-click a timing track header, then <i>Import Timing Tracks</i>.</p>
+      <div class="tracks" id="trackChoices"></div>
+      <div class="form">
+        <label>Snap to frame
+          <select id="snap"><option value="0">Off</option><option value="25" selected>25 ms (40 fps)</option><option value="50">50 ms (20 fps)</option></select>
+        </label>
+      </div>
+      <div class="btnrow">
+        <button type="button" class="btn primary" id="exportX">Download .xtiming</button>
+        <button type="button" class="btn" id="exportJ">Download analysis .json</button>
+      </div>
+    </div>
+    </div>
+
+    <div class="tabpane" data-pane="seq" hidden>
+      <div class="panel" id="showPanel">
+        <h2>Your xLights show</h2>
+        <p class="panel-note">Which folder does xLights use as your show folder? It is the one holding <code>xlights_rgbeffects.xml</code> and <code>xlights_networks.xml</code> (often <code>C:\xLights\Show</code>). The page only reads it; nothing is changed unless you save a sequence into it.</p>
+        <div class="btnrow">
+          <button type="button" class="btn primary" id="pickShow">Choose show folder…</button>
+          <button type="button" class="btn" id="reuseShow" hidden>Use the last folder</button>
+          <button type="button" class="btn" id="pickShowFiles">Or pick the two files…</button>
+          <input type="file" id="showFiles" multiple accept=".xml,.jpg,.jpeg,.png" hidden>
+        </div>
+        <p id="showStatus" class="status" aria-live="polite"></p>
+      </div>
+
+      <div class="seq-split">
+      <div class="seq-left">
+      <div class="panel" id="previewPanel" hidden>
+        <div class="panel-head">
+          <h2>Preview</h2>
+          <div class="preview-opts">
+            <label class="chk"><input type="checkbox" id="pvPhoto" checked> House photo</label>
+            <label class="chk"><input type="checkbox" id="pvUnlit" checked> Show unlit bulbs</label>
+            <button type="button" class="btn small" id="bgAdjustBtn">Line up photo…</button>
+          </div>
+        </div>
+        <div class="bg-adjust" id="bgAdjust" hidden>
+          <p class="panel-note"><b>Line up the photo with the lights.</b> Drag the photo in the preview to move it. Scroll to resize it (Shift+scroll: width only, Alt+scroll: height only). Arrow keys nudge it (Shift: 10×). Or type numbers:</p>
+          <div class="form">
+            <label>Left / right (px) <input type="number" id="bgX" step="1"></label>
+            <label>Up / down (px) <input type="number" id="bgY" step="1"></label>
+            <label>Size % <input type="number" id="bgS" step="0.5" min="10"></label>
+            <label>Width % <input type="number" id="bgW" step="0.5" min="10"></label>
+            <label>Height % <input type="number" id="bgH" step="0.5" min="10"></label>
+            <label>Photo brightness % <input type="number" id="bgA" step="5" min="5" max="100"></label>
+          </div>
+          <div class="btnrow">
+            <button type="button" class="btn" id="bgReset">Back to xLights' placement</button>
+            <button type="button" class="btn primary" id="bgDone">Done</button>
+          </div>
+        </div>
+        <div class="viewer-wrap"><canvas id="viewer"></canvas><div class="pv-pop" id="pvPop" hidden></div></div>
+        <div class="scrub" id="scrub" title="Click to jump"><div id="scrubFill"></div><div class="scrub-parts" id="scrubParts"></div></div>
+        <div class="transport-strip" id="tStrip">
+          <button type="button" class="btn small" id="tPrev" title="Previous section">⏮ Prev</button>
+          <button type="button" class="btn small" id="tPlay" title="Play / pause (Space)">▶ Play</button>
+          <button type="button" class="btn small" id="tNext" title="Next section">Next ⏭</button>
+          <button type="button" class="btn small" id="tLoop" title="Loop the section that is playing">🔁 Loop</button>
+          <label class="t-speed">Speed <select id="tSpeed"><option value="0.5">½×</option><option value="0.75">¾×</option><option value="1" selected>1×</option></select></label>
+          <span class="t-beat" id="tBeat"><i id="tBeatDot"></i> <span id="tBeatText">Bar – · beat –</span></span>
+          <span class="t-sec" id="tSec"></span>
+        </div>
+        <p class="hint" id="pvInfo"></p>
+        <p class="hint" id="pvSolo" hidden></p>
+        <p class="hint pv-tip">Click a prop on the house to see what lights it; drag a box over the yard to pick several props.</p>
+      </div>
+      <div class="panel" id="gridPanel" hidden>
+        <div class="panel-head">
+          <h2>Effects in <span id="gridTitle">this section</span></h2>
+          <span class="muted small">Click a block to open its lights · click empty space to play from there</span>
+        </div>
+        <div class="grid-wrap" id="gridWrap"><canvas id="fxGrid"></canvas><div class="grid-tip" id="gridTip" hidden></div></div>
+      </div>
+      </div>
+      <div class="seq-right">
+
+      <div class="panel" id="planPanel" hidden>
+        <div class="panel-head">
+          <h2>What lights up when</h2>
+          <div class="btnrow tight">
+            <button type="button" class="btn small" id="planUndo" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
+            <button type="button" class="btn small" id="planRedo" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
+          </div>
+        </div>
+        <p class="panel-note">Every section has its own lights. Open a section to choose which models, groups or parts of models light up, how, and when (the whole time, or on beats, drum hits or singing). Click the strip under the preview to play from there; Ctrl+click a part to open its lights.</p>
+        <div class="idea-bar">
+          <button type="button" class="btn primary" id="suggestPlan">🎲 Suggest a plan</button>
+          <details class="idea-for" id="ideaFor">
+            <summary>For: <b id="ideaForLabel">every section</b></summary>
+            <div class="idea-for-pop">
+              <div class="btnrow tight" id="ideaQuick"></div>
+              <div class="pick-list" id="ideaList"></div>
+            </div>
+          </details>
+          <label>Feeling <select id="ideaFeel"></select></label>
+          <label>Intensity <select id="ideaIntensity"></select></label>
+          <label>Colours for ideas <select id="ideaScheme"></select></label>
+          <button type="button" class="btn small" id="editSchemes">Edit colour schemes…</button>
+          <label class="chk" title="Repeats of a part (all the Choruses) share their effects; louder repeats light more props, quieter ones fewer"><input type="checkbox" id="ideaAlike" checked> Same idea for repeats</label>
+          <label class="chk" title="Makes a few ideas, measures how well each one follows the music, and keeps the best"><input type="checkbox" id="ideaBest" checked> Try a few, keep the best fit</label>
+          <label class="chk" title="A long part changes a little where its energy changes: more or fewer props, the other colour, moving things turn round"><input type="checkbox" id="ideaPhrased" checked> Change with the energy inside long parts</label>
+          <label class="chk" title="The matrix shows the words in choruses and stays a dim, slow background everywhere else"><input type="checkbox" id="ideaMatrixWords"> Words on the matrix in choruses</label>
+          <button type="button" class="btn small" id="mixBtn" title="Use certain props more or less in each part of the song">Prop mix…</button>
+          <button type="button" class="btn small" id="ideaExcludeBtn" title="Props, groups or parts of props that ideas must never use">Leave out of ideas…</button>
+          <span class="muted small" id="ideaExcludeTxt"></span>
+        </div>
+        <div class="plan-nav">
+          <select id="goSection" aria-label="Go to a section"></select>
+          <button type="button" class="btn small" id="expandAll">Expand all</button>
+          <button type="button" class="btn small" id="collapseAll">Collapse all</button>
+          <button type="button" class="btn small" id="recolourBtn" title="Change only the colours of planned lights">🎨 Change colours…</button>
+        </div>
+        <p id="planStatus" class="status" aria-live="polite"></p>
+        <div id="fitBox" class="fit" hidden></div>
+        <div id="plan"></div>
+      </div>
+      </div>
+      </div>
+
+      <div class="panel" id="xsqPanel" hidden>
+        <h2>Save the sequence</h2>
+        <p class="panel-note">Writes an xLights sequence (.xsq) with your effects plus Beats, Bars, Song Parts and Lyrics timing tracks. Open it in xLights and render as usual.</p>
+        <div class="form">
+          <label class="wide">Song file, as xLights should find it
+            <input type="text" id="mediaPath" spellcheck="false" placeholder="C:\xLights\MP3\song.mp3">
+          </label>
+        </div>
+        <p class="panel-note small">If the path is not exact, xLights still finds a song with this file name in your show folder, its subfolders, or your media folders.</p>
+        <div class="btnrow">
+          <button type="button" class="btn primary" id="saveXsq">Save into show folder</button>
+          <button type="button" class="btn" id="downloadXsq">Download .xsq</button>
+        </div>
+        <p id="xsqStatus" class="status"></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="picker" class="picker">
+  <form method="dialog" class="picker-inner">
+    <div class="picker-head">
+      <h2>Choose lights</h2>
+      <input type="search" id="pickSearch" placeholder="Filter by name…" aria-label="Filter">
+    </div>
+    <div class="picker-cols">
+      <div><h3>Groups</h3><div id="pickGroups" class="pick-list"></div></div>
+      <div><h3>Models <span>(▸ for parts of a model)</span></h3><div id="pickModels" class="pick-list"></div></div>
+    </div>
+    <div class="picker-foot">
+      <span id="pickCount"></span>
+      <button type="submit" class="btn primary" value="ok">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="copyDlg" class="picker copy-dlg">
+  <form method="dialog" class="picker-inner">
+    <div class="picker-head"><h2 id="copyTitle">Copy lights to…</h2></div>
+    <div class="copy-body">
+      <div class="btnrow tight" id="copyQuick"></div>
+      <div id="copyList" class="pick-list"></div>
+      <div class="copy-mode">
+        <label class="chk"><input type="radio" name="copyMode" value="replace" checked> Replace their lights</label>
+        <label class="chk"><input type="radio" name="copyMode" value="add"> Add to their lights</label>
+      </div>
+    </div>
+    <div class="picker-foot">
+      <button type="button" class="btn" id="copyCancel">Cancel</button>
+      <button type="button" class="btn primary" id="copyGo">Copy</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="mixDlg" class="picker mix-dlg">
+  <form method="dialog" class="picker-inner">
+    <div class="picker-head"><h2>Prop mix for ideas</h2><span class="muted small">How much <b>Suggest a plan</b> and <b>Randomize</b> use each prop, in each kind of section. A section's own setting wins over "Every part". Lights already planned don't change.</span></div>
+    <div class="mix-wrap"><table class="mix-table" id="mixTable"></table></div>
+    <div class="picker-foot">
+      <div class="btnrow tight">
+        <button type="button" class="btn small" id="mixAdd">+ Add a model or group…</button>
+        <button type="button" class="btn small" id="mixReset">Everything back to normal</button>
+      </div>
+      <button type="submit" class="btn primary">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="recolourDlg" class="picker recolour-dlg">
+  <form method="dialog" class="picker-inner">
+    <div class="picker-head"><h2>Change colours</h2><span class="muted small">Only the colours change; effects stay as they are. The preview shows it before you apply.</span></div>
+    <div class="recolour-body">
+      <h3>Colours</h3>
+      <div class="recolour-schemes" id="rcSchemes"></div>
+      <h3>Where</h3>
+      <div class="btnrow tight" id="rcQuick"></div>
+      <div class="pick-list rc-list" id="rcList"></div>
+      <h3>How</h3>
+      <label class="chk"><input type="radio" name="rcMode" value="keep" checked> Keep each light row's number of colours (rows get different mixes, like ideas do)</label>
+      <label class="chk"><input type="radio" name="rcMode" value="full"> Use the whole scheme on every row</label>
+      <label class="chk"><input type="checkbox" id="rcFaces"> Recolour singing faces too</label>
+    </div>
+    <div class="picker-foot">
+      <span id="rcCount" class="muted small"></span>
+      <div class="btnrow tight">
+        <button type="button" class="btn" id="rcCancel">Cancel</button>
+        <button type="button" class="btn primary" id="rcApply">Apply</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="schemeDlg" class="picker scheme-dlg">
+  <form method="dialog" class="picker-inner">
+    <div class="picker-head"><h2>Colour schemes</h2><span class="muted small">Used by the colour lists and by ideas. Lights already planned keep their colours.</span></div>
+    <div class="scheme-list" id="schemeList"></div>
+    <div class="picker-foot">
+      <div class="btnrow tight">
+        <button type="button" class="btn" id="schemeAdd">+ New scheme</button>
+        <button type="button" class="btn" id="schemeRandom">🎲 Add a random scheme</button>
+        <button type="button" class="btn" id="schemeReset">Back to the default schemes</button>
+      </div>
+      <button type="submit" class="btn primary">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/analysis.js"></script>
+<script src="js/vocals.js"></script>
+<script src="js/show.js"></script>
+<script src="js/effects.js"></script>
+<script src="js/sequence.js"></script>
+<script src="js/ideas.js"></script>
+<script src="js/fit.js"></script>
+<script src="js/app.js"></script>
+<script src="js/sequi.js"></script>
+</body>
+</html>
