@@ -1922,6 +1922,8 @@
         box.querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => { const r = list[+b.dataset.i]; openRecent(r.handle, r.hash); }));
     }
     renderRecentStart();
+    // once a song is open the start-screen list goes away
+    document.addEventListener('xl:song', () => { if (state.buffer) $('recentStart').hidden = true; });
 
     // ---------- auto-save ----------
 

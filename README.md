@@ -158,6 +158,9 @@ Ctrl+Z undoes. Edits are kept per song (keyed by word position + word), survive
   choruses use both and swap them bar by bar, quiet parts go cool.
 - *Words on the matrix in choruses* (option): the lyrics on the matrix in the lifting parts,
   a dim slow background on it everywhere else.
+- *📝 Words on the matrix…* adds the words to an existing plan without changing anything
+  else: choose the matrix, the parts (choruses ticked to start), text size and colour, and
+  whether to dim the matrix's other lights there. *Remove from these parts* takes them off.
 - *Prop types…* tells ideas what a prop is when its name doesn't say. Without it, a group is
   judged by what most of its members are (so "Everything but starburst" is not a group of
   stars), and a model by its name, then its xLights type.

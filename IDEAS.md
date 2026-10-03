@@ -212,6 +212,9 @@ hosting account) is his to do; I can prepare everything up to that point.
 
 ## Done
 
+- **2026-10-03:** *📝 Words on the matrix…*: add the sung words to the matrix in chosen parts
+  (choruses by default) on the current plan, with size, colour and dimming of the matrix's
+  other lights; remove again; one undo step. (The older checkbox only shapes new ideas.)
 - **2026-10-03:** Projects: why opening one always asked for the MP3 (the page remembered the
   song, but the browser only re-allows reading it during a click, and the file box doesn't
   count), now one *Open* click (and *Allow on every visit* in Chrome/Edge stops it asking).

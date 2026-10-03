@@ -261,6 +261,7 @@
           <button type="button" class="btn small" id="expandAll">Expand all</button>
           <button type="button" class="btn small" id="collapseAll">Collapse all</button>
           <button type="button" class="btn small" id="recolourBtn" title="Change only the colours of planned lights">🎨 Change colours…</button>
+          <button type="button" class="btn small" id="wordsBtn" title="Show the sung words on the matrix in the parts you choose">📝 Words on the matrix…</button>
         </div>
         <p id="planStatus" class="status" aria-live="polite"></p>
         <div id="fitBox" class="fit" hidden></div>
@@ -366,6 +367,34 @@
     <div class="picker-foot">
       <button type="button" class="btn small" id="typesReset">Back to the guesses</button>
       <button type="submit" class="btn primary">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="wordsDlg" class="picker recolour-dlg">
+  <form method="dialog" class="picker-inner">
+    <div class="picker-head"><h2>Words on the matrix</h2><span class="muted small">Shows each sung line on the matrix as it is sung (xLights' Text effect reading the Lyrics timing track). Your other lights stay as they are; one Undo takes it back.</span></div>
+    <div class="recolour-body">
+      <p class="status error" id="wdNoWords" hidden>Find the words first: <b>1. Song &amp; words → Find words &amp; vocals</b>.</p>
+      <h3>Which matrix</h3>
+      <div class="btnrow tight"><select id="wdMatrix" aria-label="Matrix"></select></div>
+      <h3>Where</h3>
+      <div class="btnrow tight" id="wdQuick"></div>
+      <div class="pick-list rc-list" id="wdList"></div>
+      <h3>How</h3>
+      <div class="btnrow tight">
+        <label>Text size <input type="number" id="wdSize" min="4" max="200" step="1" style="width:70px"></label>
+        <label>Colour <input type="color" id="wdColor" value="#ffffff"></label>
+      </div>
+      <label class="chk"><input type="checkbox" id="wdDim" checked> Dim the matrix's other lights in those parts, so the words stand out</label>
+    </div>
+    <div class="picker-foot">
+      <button type="button" class="btn small" id="wdRemove" title="Take the words off the matrix in the ticked parts">Remove from these parts</button>
+      <div class="btnrow tight">
+        <span id="wdCount" class="muted small"></span>
+        <button type="button" class="btn" id="wdCancel">Cancel</button>
+        <button type="button" class="btn primary" id="wdApply">Add the words</button>
+      </div>
     </div>
   </form>
 </dialog>

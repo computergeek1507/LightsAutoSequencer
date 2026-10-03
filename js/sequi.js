@@ -1693,6 +1693,99 @@
     const rcDlg = $('recolourDlg');
     let rc = null;    // { before: snapshot, scheme, ids: Set }
 
+    // ---------- words on the matrix ----------
+    //
+    // Adds a Text row (each sung line) on a matrix to the chosen parts, without
+    // touching anything else; the matrix's other rows there can be dimmed so the
+    // words read.
+
+    const LIFT_NAME = /chorus|refrain|drop|hook/i;
+    const wd = { ids: new Set() };
+    function matrixChoices() {
+        const sh = S.show;
+        return [...sh.models.values()]
+            .filter(m => m.attrs.Controller !== 'No Controller' && (Ideas.classify(sh, m.name) === 'matrix' || /Matrix$/.test(m.type)))
+            .sort((a, b) => b.nodes.length - a.nodes.length);
+    }
+    function wordsRowsIn(c, target) { return c.rows.filter(r => r.effect === 'lyrictext' && r.targets.includes(target)); }
+    function openWords() {
+        const song = XLWeb.song();
+        if (!song || !S.show || !S.plan) return;
+        const mats = matrixChoices();
+        $('wdMatrix').innerHTML = mats.length ? mats.map(m => `<option value="${esc(m.name)}">${esc(m.name)} (${m.bufW}×${m.bufH})</option>`).join('')
+            : '<option value="">No matrix found in your show</option>';
+        const lifts = song.sections.filter(s => LIFT_NAME.test(s.name));
+        wd.ids = new Set(lifts.length ? lifts.map(s => s.id) : []);
+        // parts that already show the words stay ticked
+        if (mats.length) for (const s of song.sections) if (wordsRowsIn(S.plan.sections[s.id] || { rows: [] }, mats[0].name).length) wd.ids.add(s.id);
+        setWordsSize();
+        $('wdNoWords').hidden = !!song.lyr;
+        drawWords();
+        $('wordsDlg').showModal();
+    }
+    function setWordsSize() {
+        const m = S.show.models.get($('wdMatrix').value);
+        $('wdSize').value = m ? Math.max(8, Math.round((m.bufH || 20) * 0.6)) : 20;
+    }
+    function drawWords() {
+        const song = XLWeb.song();
+        const kinds = [...new Set(song.sections.map(s => Sequencer.kindOf(s.name)))];
+        $('wdQuick').innerHTML = kinds.map(k => `<button type="button" class="btn tiny" data-k="${esc(k)}">All ${esc(k)}</button>`).join('') + '<button type="button" class="btn tiny" data-k="*">Every part</button><button type="button" class="btn tiny" data-k="">None</button>';
+        const target = $('wdMatrix').value;
+        $('wdList').innerHTML = song.sections.map(s => {
+            const has = target && wordsRowsIn(S.plan.sections[s.id] || { rows: [] }, target).length;
+            const sung = song.lyr ? song.lyr.lines.filter(l => l.s < s.e && l.e > s.s).length : 0;
+            return `<label class="pick-item"><input type="checkbox" value="${s.id}" ${wd.ids.has(s.id) ? 'checked' : ''}> <span>${esc(s.name)}</span> <em>${song.lyr ? `${sung} sung line${sung === 1 ? '' : 's'}` : ''}${has ? ' · words on' : ''}</em></label>`;
+        }).join('');
+        $('wdQuick').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+            const k = b.dataset.k;
+            wd.ids = new Set(k === '*' ? song.sections.map(s => s.id) : k === '' ? [] : song.sections.filter(s => Sequencer.kindOf(s.name) === k).map(s => s.id));
+            drawWords();
+        }));
+        $('wdList').querySelectorAll('input').forEach(cb => cb.addEventListener('change', () => { if (cb.checked) wd.ids.add(cb.value); else wd.ids.delete(cb.value); countWords(); }));
+        countWords();
+    }
+    function countWords() {
+        const n = wd.ids.size;
+        $('wdCount').textContent = n ? `${n} part${n > 1 ? 's' : ''}` : 'no parts ticked';
+        $('wdApply').disabled = !n || !$('wdMatrix').value || !XLWeb.song().lyr;
+        $('wdRemove').disabled = !n || !$('wdMatrix').value;
+    }
+    $('wdMatrix').addEventListener('change', () => { setWordsSize(); drawWords(); });
+    $('wordsBtn').addEventListener('click', openWords);
+    $('wdCancel').addEventListener('click', () => $('wordsDlg').close());
+    $('wdApply').addEventListener('click', () => {
+        const target = $('wdMatrix').value, size = Math.max(4, parseInt($('wdSize').value, 10) || 20);
+        const color = $('wdColor').value.toUpperCase(), dim = $('wdDim').checked;
+        const song = XLWeb.song();
+        const ids = song.sections.filter(s => wd.ids.has(s.id)).map(s => s.id);
+        commit(() => {
+            for (const id of ids) {
+                const c = container(id);
+                c.rows = c.rows.filter(r => !(r.effect === 'lyrictext' && r.targets.includes(target)));
+                if (dim) for (const r of c.rows) if (r.trigger === 'span' && r.targets.includes(target) && r.effect !== 'faces') r.level = Math.min(r.level ?? 100, 25);
+                c.rows.push({ id: Sequencer.newId(), trigger: 'lines', targets: [target], effect: 'lyrictext', options: { size }, colors: [color], scheme: 'custom' });
+            }
+        });
+        $('wordsDlg').close();
+        setPlanStatus(`Words on ${target} in ${ids.map(id => song.sections.find(s => s.id === id).name).join(', ')}. Undo takes it back.`);
+    });
+    $('wdRemove').addEventListener('click', () => {
+        const target = $('wdMatrix').value;
+        let n = 0;
+        commit(() => {
+            for (const id of wd.ids) {
+                const c = S.plan.sections[id];
+                if (!c) continue;
+                const before = c.rows.length;
+                c.rows = c.rows.filter(r => !(r.effect === 'lyrictext' && r.targets.includes(target)));
+                n += before - c.rows.length;
+            }
+        });
+        $('wordsDlg').close();
+        setPlanStatus(n ? `Took the words off ${target} in ${n} part${n > 1 ? 's' : ''}.` : `There were no words on ${target} in those parts.`);
+    });
+
     function openRecolour(ids) {
         const song = XLWeb.song();
         if (!song || !S.plan) return;
