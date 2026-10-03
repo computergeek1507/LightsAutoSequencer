@@ -416,3 +416,8 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; backgro
 .row-line .rkeep { margin: 0; cursor: pointer; }
 .plan-row.kept .rl-text::before { content: '🔒 '; }
 .plan-row.kept .rl-text b { color: var(--wave); }
+
+/* site footer */
+.site-foot { max-width: 1100px; margin: 24px auto 32px; padding: 0 16px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.site-foot p { margin: 0 0 6px; }
+.site-foot a { color: inherit; }

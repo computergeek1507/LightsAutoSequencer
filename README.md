@@ -14,6 +14,13 @@ Two tabs:
 
 ## Running it
 
+**Online:** https://socman1984-hub.github.io/LightsAutoSequencer/ (GitHub Pages, from the
+`main` branch). GitHub Pages can't send the cross-origin isolation headers the models like,
+so `coi.js` adds them through a service worker (one automatic reload on the first visit);
+`_headers` / `netlify.toml` do the same on Cloudflare Pages or Netlify.
+
+**On your own computer:**
+
 ```
 node serve.js
 ```
