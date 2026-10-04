@@ -33,6 +33,8 @@
             setShowStatus('Reading your show…');
             const show = await loader();
             S.show = show;
+            S.xsqSavedAt = 0;
+            setTimeout(() => document.dispatchEvent(new CustomEvent('xl:show')), 0);
             loadPropTypes();
             const faces = [...show.models.values()].filter(m => m.faces.length).length;
             setShowStatus(`Show: "${show.folderName}" · ${show.models.size} models, ${show.groups.size} groups, ${show.nodeCount.toLocaleString()} lights${faces ? `, ${faces} singing face${faces > 1 ? 's' : ''}` : ''}${show.backgroundUrl ? '' : ' · no house photo found'}`);
@@ -2331,6 +2333,8 @@
         a.click();
         setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
         $('xsqStatus').textContent = `Downloaded ${song.fileName}.xsq. Move it into your show folder and open it in xLights.`;
+        S.xsqSavedAt = Date.now();
+        document.dispatchEvent(new CustomEvent('xl:xsq'));
     });
 
     $('saveXsq').addEventListener('click', async () => {
@@ -2348,6 +2352,8 @@
             await w.write(xml);
             await w.close();
             $('xsqStatus').textContent = `Saved ${name} in "${S.show.folderName}". Open it in xLights and render.`;
+            S.xsqSavedAt = Date.now();
+            document.dispatchEvent(new CustomEvent('xl:xsq'));
         } catch (err) {
             console.error(err);
             $('xsqStatus').textContent = 'Could not save: ' + (err.message || err);

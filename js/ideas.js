@@ -39,7 +39,7 @@ const Ideas = (() => {
         ['arch', /arch/i],
         ['cane', /cane/i],
         ['spinner', /spinner/i],
-        ['snowflake', /snow ?flake/i],
+        ['snowflake', /snow ?flake|flake/i],
         ['matrix', /matrix|pebble|tune ?to/i],
         ['cross', /cross/i],
         ['peace', /peace/i],
@@ -99,6 +99,8 @@ const Ideas = (() => {
             if (m.type === 'Spinner') return 'spinner';
             if (m.type === 'Circle' || m.type === 'Wreath') return 'wreath';
             if (m.type === 'Sphere') return 'star';
+            // a custom prop packed with pixels (a snow globe, a sign) works like a matrix
+            if (m.type === 'Custom' && m.nodes.length >= 150 && m.bufW >= 10 && m.bufH >= 10 && m.nodes.length / (m.bufW * m.bufH) >= 0.45) return 'matrix';
             if (m.type === 'Arches') return 'arch';
             if (m.type === 'Window Frame') return 'window';
             if (m.type === 'Star') return 'star';
@@ -114,14 +116,14 @@ const Ideas = (() => {
         cane: { chase: 46, on: 15, shockwave: 9, wash: 7, bars: 5, spirals: 4 },
         minitree: { shockwave: 28, chase: 21, on: 21, twinkle: 10, spirals: 5 },
         megatree: { shockwave: 18, chase: 17, spirals: 10, pinwheel: 9, butterfly: 8, bars: 8, twinkle: 8 },
-        spinner: { chase: 28, shockwave: 22, pinwheel: 17, wash: 5 },
-        snowflake: { shockwave: 44, on: 20, twinkle: 15, wash: 8 },
+        spinner: { chase: 28, shockwave: 22, pinwheel: 17, spirals: 8, twinkle: 5, wash: 5 },
+        snowflake: { shockwave: 44, on: 20, twinkle: 15, pinwheel: 12, spirals: 6, wash: 8 },
         matrix: { shockwave: 30, pinwheel: 16, butterfly: 15, chase: 11, bars: 10 },
         cross: { shockwave: 30, chase: 20, pinwheel: 11, on: 10 },
         peace: { chase: 49, shockwave: 14, on: 10 },
         window: { marquee: 41, chase: 17, on: 15, wash: 10 },
         flood: { on: 56, wash: 14 },
-        star: { twinkle: 30, on: 30, shockwave: 20 },
+        star: { twinkle: 30, on: 30, shockwave: 20, pinwheel: 8 },
         wreath: { chase: 30, pinwheel: 20, shockwave: 20, wash: 15, twinkle: 10 },
         generic: { chase: 20, wash: 20, twinkle: 15, bars: 10, on: 10, shockwave: 10, spirals: 5, butterfly: 5 },
     };
@@ -493,6 +495,36 @@ const Ideas = (() => {
             if (words && screen.size) {
                 const big = [...screen].map(t => show.models.get(t)).filter(Boolean).sort((x, y) => y.nodes.length - x.nodes.length)[0];
                 if (big) rows.push({ id: Sequencer.newId(), trigger: 'lines', targets: [big.name], effect: 'lyrictext', options: { size: Math.max(8, Math.round((big.bufH || 20) * 0.6)) }, colors: ['#FFFFFF'], scheme: 'custom' });
+            }
+        }
+
+        // Big singing props (a snow globe with a face) carry a soft background in
+        // every part; the face is drawn on top of it while someone sings.
+        const faceCands = candidates(show, excluded).get('face');
+        for (const t of (faceCands ? faceCands.targets : [])) {
+            const m = show.models.get(t);
+            if (!m || m.nodes.length < 300 || (usePool && !pool.includes(t))) continue;
+            const fr = propRng('bed:' + t);
+            const effect = weighted(fr, energy < 0.35 ? { wash: 4, twinkle: 3 } : { wash: 3, twinkle: 3, butterfly: 2 });
+            const colors = pick(fr, ctx.cp.base).slice();
+            let options = optionsFor(effect, fr, ctx);
+            if (ctx.flip) options = flipOptions(effect, options);
+            rows.push({ id: Sequencer.newId(), trigger: 'span', targets: [t], effect, options, colors, scheme: schemeTag(colors, ctx.scheme), level: Math.round(ctx.level * 0.5 / 5) * 5 });
+        }
+
+        // Screens (matrices, dense props) get a layered look: a second, lighter
+        // effect on top of the base (sparkles, spirals or bars), unless the
+        // matrix is showing the words.
+        if (energy >= 0.3) {
+            for (const r of rows.slice()) {
+                if (r.trigger !== 'span' || screen.has(r.targets[0]) || classify(show, r.targets[0]) !== 'matrix') continue;
+                const lr = propRng('layer:' + r.targets[0]);
+                const over = weighted(lr, { twinkle: 5, spirals: 3, bars: 2 });
+                if (over === r.effect) continue;
+                const colors = [ctx.cp.accent || r.colors[0]];
+                let options = optionsFor(over, lr, ctx);
+                if (ctx.flip) options = flipOptions(over, options);
+                rows.push({ id: Sequencer.newId(), trigger: 'span', targets: r.targets.slice(), effect: over, options, colors, scheme: schemeTag(colors, ctx.scheme), level: Math.round((r.level ?? 100) * 0.7 / 5) * 5 });
             }
         }
 

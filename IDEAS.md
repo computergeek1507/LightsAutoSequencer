@@ -157,6 +157,23 @@ Result on Dusty Bibles (xLights render, benchmark from the owner's sequences): d
 57% (target ≥ 45%), loudness r 0.48 (owner's 0.40-0.60), median below mean; xLights vs preview
 0.98. Dark time is still only 1% (owner's 5-10%).
 
+## Effect presets from the community (open, needs a decision)
+
+Tester idea: let people contribute effect presets per kind of prop, so ideas can use richer
+effects than the 13 built in. Neither the owner's show nor the tester's has xLights effect
+presets saved, so they'd come as shared packs. Plan:
+
+1. **A preset pack format** (one JSON file): for each preset its name, the kinds of prop it
+   suits (snowflake, spinner, wreath, star = "round"; arches, canes = "line"; matrix…), how
+   busy it is (calm / medium / busy), whether it's for the whole part or a beat hit, and the
+   xLights effect settings copied from xLights (right-click an effect → *Copy*).
+2. **Ideas use them**: alongside the built-in effects, weighted by kind of prop and loudness.
+   The saved .xsq carries the exact xLights settings, so xLights renders them faithfully.
+3. **Preview**: effects the app knows preview exactly; others show an approximation (a
+   colour shimmer labelled with the effect's name). That's the main trade-off.
+4. **Sharing**: packs posted in Discord or as GitHub pull requests; a *Load preset pack…*
+   button; a starter pack built from the owner's own sequences.
+
 ## From testers' files (open)
 
 - Layout scenery: picture objects (e.g. "Night Sky.png") and 3D house meshes (`.obj`) in
@@ -219,6 +236,13 @@ hosting account) is the owner's to do; I can prepare everything up to that point
 
 ## Done
 
+- **2026-10-03:** From tester feedback: a step tracker under the tabs (Song › Words (optional)
+  › Your show › Plan the lights › Save for xLights) that ticks off, highlights the next step
+  and jumps there; *Save* un-ticks when the plan changes after saving. Matrices and other
+  screen-like props (dense custom props) get a layered look (base + lighter overlay). Big
+  singing-face props (300+ lights, e.g. a snow globe) get a background effect in every part
+  under the face. Round props share moves (pinwheel/spirals on snowflakes, spirals on
+  spinners, pinwheel on stars). "…flake" names count as snowflakes.
 - **2026-10-03:** From a tester's packaged sequence (.xsqz, "Here comes Santa Claus Trap Remix
   LAS Test", their 47-prop 3D layout): no missing props; layout lines up with their photo.
   Added Image props in the preview (the picture, dimmed to its OffBrightness when off,
