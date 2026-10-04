@@ -115,6 +115,8 @@ const Show = (() => {
             try { m = buildModel(a); } catch (e) { console.warn('model', a.name, e); continue; }
             if (!m) continue;
             m.submodels = [...el.querySelectorAll(':scope > subModel')].map(s => subModel(s, m)).filter(Boolean);
+            // every submodel xLights knows, including ones the preview can't draw
+            m.subNames = new Set([...el.querySelectorAll(':scope > subModel')].map(s => s.getAttribute('name')).filter(Boolean));
             m.faces = [...el.querySelectorAll(':scope > faceInfo')].map(f => faceInfo(f, m)).filter(Boolean);
             show.models.set(m.name, m);
             show.nodeCount += m.nodes.length;
@@ -732,6 +734,16 @@ const Show = (() => {
 
     // ---------- targets: what a sequence row addresses ----------
 
+    // Is this a model, group or "Model/SubModel" in this show? (A plan made with
+    // another layout, or before props were renamed, can name ones that aren't.)
+    function hasTarget(show, name) {
+        if (show.models.has(name) || show.groups.has(name)) return true;
+        const i = name.indexOf('/');
+        if (i < 0) return false;
+        const m = show.models.get(name.slice(0, i));
+        return !!(m && m.subNames && m.subNames.has(name.slice(i + 1)));
+    }
+
     // Resolve a row name (group, model or "Model/SubModel") to its nodes, each
     // with buffer coordinates u,v in 0..1 for that row's default buffer.
     function resolveTarget(show, name, seen = new Set()) {
@@ -779,5 +791,5 @@ const Show = (() => {
         return [];
     }
 
-    return { canPickFolder, pickFolder, savedFolder, permission, loadFromFolder, loadFromFiles, parse, resolveTarget, kvGet, kvPut };
+    return { canPickFolder, pickFolder, savedFolder, permission, loadFromFolder, loadFromFiles, parse, resolveTarget, hasTarget, kvGet, kvPut };
 })();

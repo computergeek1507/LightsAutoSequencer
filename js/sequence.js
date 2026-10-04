@@ -98,6 +98,8 @@ const Sequencer = (() => {
         const snap = s => Math.round(s * 1000 / FRAME_MS) * FRAME_MS;
         let count = 0;
         const problems = [];
+        // props named in the plan that this show doesn't have: left out, and listed
+        const missing = new Set();
         const markCache = new Map();
         const marks = id => { if (!markCache.has(id)) markCache.set(id, marksFor(id, song)); return markCache.get(id); };
 
@@ -153,6 +155,7 @@ const Sequencer = (() => {
                 const sMs = snap(sp.s), eMs = snap(sp.e);
                 if (eMs - sMs < MIN_MS) return;
                 for (const target of row.targets) {
+                    if (!Show.hasTarget(show, target)) { missing.add(target); continue; }
                     if (eff.needsFace) {
                         const m = show.models.get(target);
                         if (!m || !m.faces.length) { if (!problems.includes(target)) problems.push(target); continue; }
@@ -172,7 +175,7 @@ const Sequencer = (() => {
             for (let i = 0; i < r.layers.length; i++) if (!r.layers[i]) r.layers[i] = [];
             for (const l of r.layers) l.sort((a, b) => a.sMs - b.sMs);
         }
-        return { rows, count, problems };
+        return { rows, count, problems, missing: [...missing] };
     }
 
     // The last two bars of a part (a build-up into the next one), or its first beat.

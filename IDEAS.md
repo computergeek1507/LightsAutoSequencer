@@ -212,6 +212,11 @@ hosting account) is the owner's to do; I can prepare everything up to that point
 
 ## Done
 
+- **2026-10-03:** "Props cannot be found" reports: a plan (saved per song, or from a project)
+  could name props of another layout. If the show loaded after the plan, those names went into
+  the .xsq and xLights complained; if before, they were silently deleted. Now they're kept by
+  name, left out of the preview and the saved sequence, and a ⚠ note offers *Fix…* (swap each
+  for a prop in this show, with a best guess, or leave it out).
 - **2026-10-03:** Transitions: every lift no longer goes dark then flashes white. Each lift
   gets a move (ramp up, sweep in, burst, colour hit in the part's colour, crossfade), never
   the same twice running; *build & land* (dark, then flash) only for the single biggest

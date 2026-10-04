@@ -331,6 +331,7 @@
             </div>
           </section>
         </div>
+        <div class="missing-note" id="missingNote" hidden></div>
         <p id="planStatus" class="status" aria-live="polite"></p>
         <div id="fitBox" class="fit" hidden></div>
         <div id="plan"></div>
@@ -411,6 +412,17 @@
       <span class="btnrow tight"><button type="button" class="btn" id="leaveDiscard">Don't save</button> <button type="button" class="btn primary" id="leaveSave">Save</button></span>
     </div>
   </div>
+</dialog>
+
+<dialog id="missingDlg" class="picker mix-dlg">
+  <form method="dialog" class="picker-inner">
+    <div class="picker-head"><h2>Props that aren't in this show</h2><span class="muted small">The plan names these, but the show you opened doesn't have them (another layout, or renamed in xLights). They are left out of the preview and the saved sequence. Pick what to use instead, or leave them out.</span></div>
+    <div class="mix-wrap"><table class="mix-table" id="missingTable"></table></div>
+    <div class="picker-foot">
+      <span class="muted small" id="missingCount"></span>
+      <div class="btnrow tight"><button type="button" class="btn" id="missingCancel">Cancel</button> <button type="button" class="btn primary" id="missingApply">Apply</button></div>
+    </div>
+  </form>
 </dialog>
 
 <dialog id="typesDlg" class="picker mix-dlg">

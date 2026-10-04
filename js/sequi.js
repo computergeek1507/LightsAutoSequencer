@@ -802,12 +802,8 @@
                 seen.add(r.id);
             }
         }
-        if (S.show) {
-            const keep = t => targetExists(t);
-            const clean = c => { c.rows.forEach(r => { r.targets = (r.targets || []).filter(keep); }); if (c.pool) c.pool = c.pool.filter(keep); };
-            clean(S.plan.whole);
-            Object.values(S.plan.sections).forEach(clean);
-        }
+        // Props this show doesn't have are kept by name (left out of the preview and
+        // the saved sequence) so the warning can offer to swap them; see showMissing.
         if (!quiet) { S.history = []; S.future = []; }
         renderPlan();
         regenerate();
@@ -864,14 +860,6 @@
         else if ((e.ctrlKey || e.metaKey) && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
     });
 
-    function targetExists(name) {
-        const sh = S.show;
-        if (sh.models.has(name) || sh.groups.has(name)) return true;
-        const i = name.indexOf('/');
-        if (i > 0) { const m = sh.models.get(name.slice(0, i)); return !!(m && m.submodels.some(s => s.name === name.slice(i + 1))); }
-        return false;
-    }
-
     function container(id) {
         if (id === 'whole') return S.plan.whole;
         if (!S.plan.sections[id]) S.plan.sections[id] = { rows: [], pool: [] };
@@ -893,6 +881,7 @@
             const probs = S.gen.problems.length ? ` "Singing face" only works on models with a face set up in xLights; skipped: ${S.gen.problems.join(', ')}.` : '';
             if (Date.now() - (S.statusAt || 0) > 400) setPlanStatus(S.gen.count ? `${S.gen.count.toLocaleString()} effects on ${S.gen.rows.size} rows${S.solo.size || S.mute.size ? ' in the preview' : ''}.${probs}` : 'Nothing planned yet. Open a section below and add lights, or press Suggest a plan.');
             updateSoloNote();
+            showMissing();
             savePlan();
             $('planUndo').disabled = !S.history.length;
             $('planRedo').disabled = !S.future.length;
@@ -900,6 +889,60 @@
         }, 60);
     }
     function setPlanStatus(m) { $('planStatus').textContent = m; S.statusAt = Date.now(); }
+
+    // ---------- props the plan names but this show doesn't have ----------
+
+    function planMissing() {
+        const out = new Set();
+        const check = rows => { for (const r of rows || []) for (const t of r.targets || []) if (!Show.hasTarget(S.show, t)) out.add(t); };
+        check(S.plan.whole && S.plan.whole.rows);
+        for (const c of Object.values(S.plan.sections || {})) check(c.rows);
+        return [...out];
+    }
+    function showMissing() {
+        const box = $('missingNote');
+        const list = S.show && S.plan ? planMissing() : [];
+        if (!list.length) { box.hidden = true; return; }
+        box.hidden = false;
+        box.innerHTML = `<span>⚠ <b>${list.length} prop${list.length > 1 ? 's' : ''} in this plan ${list.length > 1 ? "aren't" : "isn't"} in your show</b> (${list.slice(0, 4).map(esc).join(', ')}${list.length > 4 ? ', …' : ''}). ${list.length > 1 ? "They're" : "It's"} left out of the preview and the saved sequence, so xLights won't complain.</span> <button type="button" class="btn small primary">Fix…</button>`;
+        box.querySelector('button').addEventListener('click', openMissing);
+    }
+    function openMissing() {
+        const list = planMissing();
+        const sh = S.show;
+        const groups = [...sh.groups.keys()].sort((a, b) => a.localeCompare(b));
+        const models = [...sh.models.keys()].sort((a, b) => a.localeCompare(b));
+        // a likely match: same name ignoring case and spaces, else the same name after a number prefix
+        const norm = x => x.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const guess = name => {
+            const n = norm(name);
+            return groups.concat(models).find(x => norm(x) === n) || groups.concat(models).find(x => n && (norm(x).endsWith(n) || n.endsWith(norm(x))) && norm(x).length > 3) || '';
+        };
+        const opts = sel => `<option value="">Leave it out</option><optgroup label="Groups">${groups.map(g => `<option ${g === sel ? 'selected' : ''}>${esc(g)}</option>`).join('')}</optgroup><optgroup label="Props">${models.map(m => `<option ${m === sel ? 'selected' : ''}>${esc(m)}</option>`).join('')}</optgroup>`;
+        $('missingTable').innerHTML = '<tr><th>In the plan</th><th>Use instead</th></tr>' + list.map((n, i) => `<tr><td>${esc(n)}</td><td><select data-i="${i}">${opts(guess(n))}</select></td></tr>`).join('');
+        $('missingCount').textContent = `${list.length} missing`;
+        $('missingDlg')._list = list;
+        $('missingDlg').showModal();
+    }
+    $('missingCancel').addEventListener('click', () => $('missingDlg').close());
+    $('missingApply').addEventListener('click', () => {
+        const list = $('missingDlg')._list || [];
+        const map = new Map();
+        $('missingTable').querySelectorAll('select').forEach(sel => map.set(list[+sel.dataset.i], sel.value));
+        const fix = rows => rows
+            .map(r => ({ ...r, targets: [...new Set(r.targets.map(t => (map.has(t) ? map.get(t) : t)).filter(Boolean))] }))
+            .filter(r => r.targets.length);
+        commit(() => {
+            S.plan.whole.rows = fix(S.plan.whole.rows);
+            for (const c of Object.values(S.plan.sections)) {
+                c.rows = fix(c.rows);
+                if (c.pool) c.pool = [...new Set(c.pool.map(t => (map.has(t) ? map.get(t) : t)).filter(Boolean))];
+            }
+        });
+        $('missingDlg').close();
+        const swapped = [...map.values()].filter(Boolean).length;
+        setPlanStatus(`Fixed: ${swapped} swapped for props in your show, ${map.size - swapped} left out.`);
+    });
 
     // ---------- fit with the music ----------
     //
