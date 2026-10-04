@@ -311,6 +311,7 @@ const Show = (() => {
                     const d = type.match(/^Tree (\d+)/);
                     g = treeGeom({ ...a, TreeType: /Flat/.test(type) ? '1' : /Ribbon/.test(type) ? '2' : '0', TreeDegrees: d ? d[1] : a.TreeDegrees });
                 }
+                else if (/^DmxMovingHead/.test(type)) g = movingHeadGeom(a);
                 else g = pointGeom(a);
         }
         return {
@@ -318,6 +319,7 @@ const Show = (() => {
             pixelSize: Math.max(1, num(a.PixelSize, 2)),
             nodes: g.nodes, bufW: Math.max(1, g.bufW), bufH: Math.max(1, g.bufH),
             image: g.image || null,
+            mh: g.mh || null,
         };
     }
 
@@ -774,11 +776,27 @@ const Show = (() => {
         };
     }
 
+    // DMX moving head (DmxMovingHead / DmxMovingHeadAdv): one light where the head
+    // is, plus its fixture number (DmxFixture "MH3" -> 3), which is how xLights'
+    // Moving Head effect addresses it.
+    function movingHeadGeom(a) {
+        const c = boxed(a, [{ x: 0, y: 0 }]);
+        const fixture = Math.max(1, Math.min(8, parseInt(String(a.DmxFixture || 'MH1').replace(/\D/g, ''), 10) || 1));
+        return { nodes: [{ bx: 0, by: 0, pts: c }], bufW: 1, bufH: 1, mh: { fixture, colorType: int(a.DmxColorType, 0), dimmer: int(a.MhDimmerChannel, 0) > 0 } };
+    }
+
     function pointGeom(a) {
         return { nodes: [{ bx: 0, by: 0, pts: [{ x: num(a.WorldPosX), y: num(a.WorldPosY) }] }], bufW: 1, bufH: 1 };
     }
 
     // ---------- targets: what a sequence row addresses ----------
+
+    // The moving heads a row's target reaches (a head, or a group holding some).
+    function movingHeadsIn(show, name) {
+        const out = new Map();
+        for (const n of resolveTarget(show, name)) if (n.model.mh) out.set(n.model.name, n.model);
+        return [...out.values()];
+    }
 
     // Is this a model, group or "Model/SubModel" in this show? (A plan made with
     // another layout, or before props were renamed, can name ones that aren't.)
@@ -837,5 +855,5 @@ const Show = (() => {
         return [];
     }
 
-    return { canPickFolder, pickFolder, savedFolder, permission, loadFromFolder, loadFromFiles, parse, resolveTarget, hasTarget, kvGet, kvPut };
+    return { canPickFolder, pickFolder, savedFolder, permission, loadFromFolder, loadFromFiles, parse, resolveTarget, hasTarget, movingHeadsIn, kvGet, kvPut };
 })();

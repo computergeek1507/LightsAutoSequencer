@@ -240,10 +240,93 @@ const Effects = (() => {
         },
     ];
 
+    // ---------- moving heads (DMX) ----------
+    //
+    // xLights' Moving Head effect: per fixture a list of "Name: value" commands
+    // (MovingHeadEffect::RenderMovingHead). The pattern maths is
+    // CalculatePatternPoint / CalculatePatternPositions, ported for the preview.
+
+    const MH_PATTERNS = ['Circle', 'Eight', 'Line', 'Diamond', 'Square', 'Leaf', 'Lissajous', 'Still'];
+    function mhPatternPoint(alg, it) {
+        const h = Math.PI / 2, pi = Math.PI;
+        switch (alg) {
+            case 'Eight': return [Math.cos(it * 2 + h), Math.cos(it)];
+            case 'Line': return [Math.cos(it), Math.cos(it)];
+            case 'Diamond': return [Math.cos(it - h) ** 3, Math.cos(it) ** 3];
+            case 'Square':
+                if (it < pi / 2) return [(it * 2 / pi) * 2 - 1, 1];
+                if (it < pi) return [1, (1 - (it - pi / 2) * 2 / pi) * 2 - 1];
+                if (it < pi * 1.5) return [(1 - (it - pi) * 2 / pi) * 2 - 1, -1];
+                return [-1, ((it - pi * 1.5) * 2 / pi) * 2 - 1];
+            case 'Leaf': return [Math.cos(it + h) ** 5, Math.cos(it)];
+            case 'Lissajous': return [Math.cos(2 * it - h), Math.cos(3 * it)];
+            default: return [Math.cos(it + h), Math.cos(it)];
+        }
+    }
+    // Where a head points (degrees) at time p.t, for head number `slot` (0-based).
+    function mhAim(o, t, slot) {
+        if (o.pattern === 'Still') return { pan: +o.pan + (slot - 0) * 0, tilt: +o.tilt };
+        let prog = t * (+o.cycles || 1) + slot * (+o.spread || 0) / 360;
+        prog -= Math.floor(prog);
+        const [x, y] = mhPatternPoint(o.pattern, prog * 2 * Math.PI);
+        return { pan: +o.pan + x * (+o.width || 0), tilt: +o.tilt + y * (+o.height || 0) };
+    }
+    const hsv = hex => {
+        const [r, g, b] = hexToRgb(hex).map(v => v / 255);
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+        let h = 0;
+        if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        h /= 6; if (h < 0) h += 1;
+        return [h, mx ? d / mx : 0, mx];
+    };
+    function mhCommands(o, colors, heads) {
+        const f = v => (+v).toFixed(1);
+        const cmds = [`Pan: ${f(o.pan)}`, `Tilt: ${f(o.tilt)}`, 'PanOffset: 0.0', 'TiltOffset: 0.0', 'Groupings: 1', `Cycles: ${f(o.cycles || 1)}`, `Heads: ${heads.join(',')}`];
+        if (o.pattern !== 'Still') {
+            cmds.push(`Pattern: ${o.pattern}`, `PatternWidth: ${f(o.width)}`, `PatternHeight: ${f(o.height)}`, `PatternXOffset: ${f(o.pan)}`, `PatternYOffset: ${f(o.tilt)}`, `PatternPhaseOffset: ${f(o.spread || 0)}`);
+            if (o.pattern === 'Lissajous') cmds.push('PatternXFreq: 2.0', 'PatternYFreq: 3.0', 'PatternXPhase: 90.0', 'PatternYPhase: 0.0');
+        }
+        const cols = (colors && colors.length ? colors : ['#FFFFFF']).map(c => hsv(c).map(v => v.toFixed(6)).join(','));
+        cmds.push(`Color: ${cols.join(',')}`);
+        const d = Math.max(0, Math.min(1, (+o.dimmer || 0) / 100)).toFixed(6);
+        cmds.push(`Dimmer: 0.000000,${d},1.000000,${d}`);
+        cmds.push('Shutter: On');
+        return cmds.join(';');
+    }
+
+    LIST.push({
+        id: 'moving', label: 'Moving head', xl: 'Moving Head', use: ['part', 'hit'], dmx: true,
+        options: { pattern: 'Circle', width: 45, height: 20, pan: 0, tilt: 0, cycles: 1, spread: 45, dimmer: 100 },
+        choices: { pattern: MH_PATTERNS },
+        labels: { width: 'Pattern width °', height: 'Pattern height °', cycles: 'Rounds per part' },
+        // one block of commands per fixture the row reaches (xLights reads MH1..MH8)
+        settings: (o, ctx) => {
+            const heads = ctx.show && ctx.fx ? Show.movingHeadsIn(ctx.show, ctx.fx.target).map(m => m.mh.fixture) : [1];
+            const list = [...new Set(heads.length ? heads : [1])].sort((a, b) => a - b);
+            return list.map(n => `E_TEXTCTRL_MH${n}_Settings=${mhCommands(o, ctx.fx ? ctx.fx.colors : null, list).replace(/,/g, '&comma;')}`).join(',');
+        },
+        render(p, N, out) {
+            const o = p.o;
+            const n = p.pal.length;
+            const f = n > 1 ? (p.t * (+o.cycles || 1) % 1) * (n - 1) : 0;
+            const tmp = [0, 0, 0];
+            palBlend(p.pal, f, tmp, 0);
+            const d = Math.max(0, Math.min(1, (+o.dimmer || 0) / 100));
+            for (let k = 0; k < N.n; k++) {
+                const aim = mhAim(o, p.t, k);
+                out[3 * k] = tmp[0] * d; out[3 * k + 1] = tmp[1] * d; out[3 * k + 2] = tmp[2] * d;
+                mhState[N.g[k]] = { pan: aim.pan, tilt: aim.tilt, r: tmp[0] * d, g: tmp[1] * d, b: tmp[2] * d };
+            }
+        },
+    });
+    // where each moving head points this frame, by light index (read by the viewer)
+    let mhState = {};
+
     // On a group row: shapes that belong to one prop (a pinwheel, a ring, a
     // marquee round a window) run on each model separately by default; things
     // that travel (chases, washes) run across the whole yard.
-    const PER_MODEL = new Set(['bars', 'spirals', 'pinwheel', 'shockwave', 'marquee']);
+    // (moving heads too: xLights only runs the Moving Head effect on each head's own buffer)
+    const PER_MODEL = new Set(['bars', 'spirals', 'pinwheel', 'shockwave', 'marquee', 'moving']);
     for (const e of LIST) e.perModel = PER_MODEL.has(e.id);
 
     const BY_ID = new Map(LIST.map(e => [e.id, e]));
@@ -350,8 +433,11 @@ const Effects = (() => {
         return parts.sort().join(',');
     }
 
+    const resetMovingHeads = () => { mhState = {}; };
+    const movingHeadState = () => mhState;
+
     return {
-        LIST, get: id => BY_ID.get(id),
+        LIST, get: id => BY_ID.get(id), resetMovingHeads, movingHeadState, MH_PATTERNS,
         get SCHEMES() { return schemes; },
         DEFAULT_SCHEMES, setSchemes, resetSchemes, randomScheme,
         hexToRgb, paletteString, ADD,

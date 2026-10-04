@@ -81,6 +81,7 @@ const Ideas = (() => {
             return 'generic';
         }
         const m = show.models.get(name);
+        if (m && m.mh) return 'movinghead';
         if (m && m.faces.length) return 'face';
         // "Model/SubModel": a part named for a shape ("MiniTree1/Star") is that
         // shape; an outline or segment of a prop is still that prop.
@@ -125,6 +126,7 @@ const Ideas = (() => {
         flood: { on: 56, wash: 14 },
         star: { twinkle: 30, on: 30, shockwave: 20, pinwheel: 8 },
         wreath: { chase: 30, pinwheel: 20, shockwave: 20, wash: 15, twinkle: 10 },
+        movinghead: { moving: 1 },
         generic: { chase: 20, wash: 20, twinkle: 15, bars: 10, on: 10, shockwave: 10, spirals: 5, butterfly: 5 },
     };
     // A feeling the user can pick for ideas: which effects it favours, how fast
@@ -214,6 +216,18 @@ const Ideas = (() => {
             case 'marquee': return { band: ibetween(rng, 2, 4), skip: ibetween(rng, 1, 3), speed: Math.round(between(rng, 2, 6) * fast) };
             case 'butterfly': return { speed: Math.round(between(rng, 5, 18) * fast) };
             case 'shockwave': return { width: ibetween(rng, 20, 50) };
+            case 'moving': {
+                // calm parts: small, slow shapes; loud parts: big, fast ones, heads spread out
+                const loud = energy > 0.6;
+                return {
+                    pattern: pick(rng, loud ? ['Eight', 'Lissajous', 'Diamond', 'Circle', 'Square'] : ['Circle', 'Eight', 'Leaf', 'Line']),
+                    width: ibetween(rng, loud ? 50 : 15, loud ? 90 : 40), height: ibetween(rng, loud ? 25 : 8, loud ? 45 : 20),
+                    pan: pick(rng, [0, 0, -20, 20]), tilt: pick(rng, [0, 0, 15, -15]),
+                    cycles: Math.max(1, Math.round(bars / (loud ? pick(rng, [1, 2]) : pick(rng, [4, 8])) * (ctx.speed || 1))),
+                    spread: pick(rng, loud ? [45, 90, 120, 180] : [0, 30, 45]),
+                    dimmer: Math.round(loud ? 100 : 55 + energy * 50),
+                };
+            }
             case 'on': return energy < 0.4 ? { fadeIn: +(between(rng, 0.3, 1.5)).toFixed(1), fadeOut: +(between(rng, 0.3, 1.5)).toFixed(1) } : {};
         }
         return {};
@@ -288,11 +302,13 @@ const Ideas = (() => {
         const colors = pick(rng, ctx.cp.base).slice();
         let options = optionsFor(effect, rng, { ...ctx, energy: e });
         if (ctx.flip) options = flipOptions(effect, options);
-        return {
+        const row = {
             id: Sequencer.newId(), trigger: 'span', targets: [target], effect, options,
             colors, scheme: schemeTag(colors, ctx.scheme),
             level: ctx.level,
         };
+        if (effect === 'moving') delete row.level;
+        return row;
     }
 
     // Props that read well as a hit: how much his sequences use shockwaves / flashes on them.
@@ -390,13 +406,15 @@ const Ideas = (() => {
     const CLASS_LABELS = {
         megatree: 'Mega tree', minitree: 'Mini trees', arch: 'Arches', cane: 'Candy canes', spinner: 'Spinners',
         snowflake: 'Snowflakes', matrix: 'Matrix', cross: 'Crosses', peace: 'Peace stakes', window: 'Windows',
-        flood: 'Floods', star: 'Stars', roof: 'House lines and icicles', wreath: 'Wreaths and circles', generic: 'Other', face: 'Singing face', skip: 'Not a prop (ideas skip it)',
+        flood: 'Floods', star: 'Stars', movinghead: 'Moving heads', roof: 'House lines and icicles', wreath: 'Wreaths and circles', generic: 'Other', face: 'Singing face', skip: 'Not a prop (ideas skip it)',
     };
 
     function level(mix, key, kind) {
         const l = mix && mix.levels && mix.levels[key];
-        if (!l) return 'normal';
-        return (kind && l[kind]) || l['*'] || 'normal';
+        // moving heads are in every idea unless the prop mix says otherwise
+        const def = key === 'class:movinghead' ? 'always' : 'normal';
+        if (!l) return def;
+        return (kind && l[kind]) || l['*'] || def;
     }
 
     // The rows of the prop mix: one per prop type found in the show (floods
@@ -532,7 +550,7 @@ const Ideas = (() => {
         // a dimmer base; everything else stays steady.
         const hitCount = energy < 0.3 ? 0 : energy > 0.7 || f.beats ? 2 : 1;
         if (hitCount) {
-            const cand = chosen.filter(e => e.targets.some(t => classify(show, t) !== 'face' && !screen.has(t)));
+            const cand = chosen.filter(e => e.targets.some(t => !['face', 'movinghead'].includes(classify(show, t)) && !screen.has(t)));
             const picked = [];
             const hr = rngFrom(seed ^ 0x5bd1e995);
             while (picked.length < hitCount && cand.length) {
@@ -557,7 +575,7 @@ const Ideas = (() => {
         // flashing barely moves the show; the same hit on every prop is what reads
         // as punch. Each hit takes the next colour, so red and green alternate.
         if (energy >= 0.45) {
-            const lit = rows.filter(r => r.trigger === 'span' && r.effect !== 'faces' && !screen.has(r.targets[0]));
+            const lit = rows.filter(r => r.trigger === 'span' && r.effect !== 'faces' && r.effect !== 'moving' && !screen.has(r.targets[0]));
             if (lit.length >= 3) {
                 for (const r of lit) r.level = Math.round(r.level * (energy >= 0.6 ? 0.6 : 0.8) / 5) * 5;
                 const hasKick = (song.model.onsets.kick || []).filter(o => o.s >= 0.35 && o.t >= section.s && o.t < section.e).length >= bars * 2;
@@ -633,7 +651,7 @@ const Ideas = (() => {
         if (move === 'cut') return;
         const sa = doA && ca, sb = doB && cb;
         const barLen = song.grid.T * (song.grid.meter || 4);
-        const lit = () => [...new Set((cb ? cb.rows : []).filter(r => r.trigger === 'span' && r.effect !== 'faces').flatMap(r => r.targets))];
+        const lit = () => [...new Set((cb ? cb.rows : []).filter(r => r.trigger === 'span' && r.effect !== 'faces' && r.effect !== 'moving').flatMap(r => r.targets))];
         const colour = (() => {
             const n = new Map();
             for (const r of (cb ? cb.rows : [])) if (r.trigger === 'span' && r.colors && r.colors[0]) n.set(r.colors[0], (n.get(r.colors[0]) || 0) + 1);

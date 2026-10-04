@@ -134,6 +134,13 @@
             });
         });
         S.view = { px, py, pn, ps, pm, models, total: offset };
+        // moving heads: their spot on the house, for drawing beams
+        S.view.heads = [];
+        models.forEach((m, mi) => {
+            if (!m.mh) return;
+            const k = pm.indexOf(mi);
+            if (k >= 0) S.view.heads.push({ g: m.offset, x: px[k], y: py[k] });
+        });
         await loadPropPictures(show);
         S.modelGroups = null;
         S.hlCache = new Map();
@@ -459,8 +466,44 @@
         g.globalCompositeOperation = 'lighter';
         g.imageSmoothingEnabled = true;
         g.drawImage(V.light, 0, 0, W, H);
+        drawBeams(g);
         g.globalCompositeOperation = 'source-over';
         drawOverlays(g);
+    }
+
+    // Moving heads: a beam from each head, aimed by pan (left/right) and tilt
+    // (away from straight up), in its colour and brightness.
+    function drawBeams(g) {
+        const V = S.view, win = S.win;
+        if (!V.heads || !V.heads.length) return;
+        const st = Effects.movingHeadState();
+        const k = V.W / win.w, L = V.H * 0.55;
+        g.save();
+        g.globalCompositeOperation = 'lighter';
+        for (const h of V.heads) {
+            const s = st[h.g];
+            if (!s) continue;
+            const a = Math.max(s.r, s.g, s.b) / 255;
+            if (a < 0.03) continue;
+            const pan = s.pan * Math.PI / 180, tilt = s.tilt * Math.PI / 180;
+            const dx = Math.sin(pan) * Math.sin(tilt), dy = -Math.cos(tilt);
+            const x0 = (h.x - win.x) * k, y0 = (h.y - win.y) * k;
+            const x1 = x0 + dx * L, y1 = y0 + dy * L;
+            const nx = -dy, ny = dx, wEnd = L * 0.09;
+            const grad = g.createLinearGradient(x0, y0, x1, y1);
+            const c = `${s.r | 0},${s.g | 0},${s.b | 0}`;
+            grad.addColorStop(0, `rgba(${c},${(0.75 * a).toFixed(3)})`);
+            grad.addColorStop(1, `rgba(${c},0)`);
+            g.fillStyle = grad;
+            g.beginPath();
+            g.moveTo(x0 + nx * 2, y0 + ny * 2);
+            g.lineTo(x1 + nx * wEnd, y1 + ny * wEnd);
+            g.lineTo(x1 - nx * wEnd, y1 - ny * wEnd);
+            g.lineTo(x0 - nx * 2, y0 - ny * 2);
+            g.closePath();
+            g.fill();
+        }
+        g.restore();
     }
 
     // Boxes round the props a hovered row controls, and the drag-selection box.
@@ -1186,13 +1229,18 @@
         size: 'Length %', bars: 'Bars', count: 'Count', rotation: 'Twist', thickness: 'Thickness', arms: 'Arms', speed: 'Speed',
         twist: 'Twist', steps: 'Speed (frames)', width: 'Width', band: 'Band', skip: 'Gap', face: 'Face',
         start: 'Start %', end: 'End %',
+        pattern: 'Pattern', pan: 'Aim left/right °', tilt: 'Aim up/down °', spread: 'Spread heads °', dimmer: 'Brightness %',
     };
 
-    function effectsFor(trigger) {
+    function effectsFor(trigger, targets = []) {
         const t = Sequencer.TRIGGERS.find(x => x.id === trigger) || Sequencer.TRIGGERS[0];
-        if (t.id === 'span') return Effects.LIST.filter(e => e.use.includes('part'));
-        if (t.vocal) return Effects.LIST.filter(e => e.use.includes('vocal') || e.use.includes('hit'));
-        return Effects.LIST.filter(e => e.use.includes('hit'));
+        let list;
+        if (t.id === 'span') list = Effects.LIST.filter(e => e.use.includes('part'));
+        else if (t.vocal) list = Effects.LIST.filter(e => e.use.includes('vocal') || e.use.includes('hit'));
+        else list = Effects.LIST.filter(e => e.use.includes('hit'));
+        const heads = S.show && targets.length && targets.every(x => S.show.models.has(x) ? !!S.show.models.get(x).mh : Show.movingHeadsIn(S.show, x).length > 0);
+        if (heads) return Effects.LIST.filter(e => e.dmx);
+        return list.filter(e => !e.dmx);
     }
 
     function newRow() {
@@ -1376,7 +1424,7 @@
         const song = XLWeb.song();
         const haveWords = !!(song && song.lyr);
         r.trigger = r.trigger || 'span';
-        const effs = effectsFor(r.trigger);
+        const effs = effectsFor(r.trigger, r.targets);
         if (!effs.some(e => e.id === r.effect)) r.effect = effs[0].id;
         const eff = Effects.get(r.effect);
         const targetsTxt = r.targets.length ? r.targets.map(esc).join(', ') : '<i>no lights chosen</i>';
@@ -1408,9 +1456,9 @@
               <span class="swatches">${r.colors.map((col, i) => `<input type="color" value="${col}" data-i="${i}" aria-label="Colour ${i + 1}">`).join('')}${r.colors.length < 6 ? '<button type="button" class="btn tiny addc" title="Add a colour">+</button>' : ''}${r.colors.length > 1 ? '<button type="button" class="btn tiny delc" title="Remove the last colour">−</button>' : ''}</span>
               <span class="opts"></span>
               <label title="Only part of the section: from this bar to that bar (empty = the whole part)">Bars <span class="bars-in"><input type="number" class="bfrom" min="1" step="1" value="${r.bars ? r.bars[0] + 1 : ''}" placeholder="1"> to <input type="number" class="bto" min="1" step="1" value="${r.bars && r.bars[1] < 9999 ? r.bars[1] : ''}" placeholder="end"></span></label>
-              ${eff.id !== 'faces' ? `<label title="How bright this row is (xLights' Brightness slider)">Brightness % <input type="number" class="lvl" min="0" max="100" step="5" value="${r.level ?? 100}"></label>` : ''}
-              ${eff.id !== 'faces' && r.trigger === 'span' && eff.id !== 'on' ? `<label title="Fade out over the last seconds of the row (e.g. when the song fades)">Fade at end (s) <input type="number" class="efade" min="0" step="0.5" value="${r.endFade || 0}"></label>` : ''}
-              ${r.targets.some(t => S.show.groups.has(t)) && !eff.use.includes('vocal') ? `<label class="chk permodel" title="On: each model in the group gets the effect separately. Off: the effect spans the whole group, across the yard."><input type="checkbox" class="pm" ${(r.perModel ?? eff.perModel) ? 'checked' : ''}> Each model on its own</label>` : ''}
+              ${eff.id !== 'faces' && !eff.dmx ? `<label title="How bright this row is (xLights' Brightness slider)">Brightness % <input type="number" class="lvl" min="0" max="100" step="5" value="${r.level ?? 100}"></label>` : ''}
+              ${eff.id !== 'faces' && !eff.dmx && r.trigger === 'span' && eff.id !== 'on' ? `<label title="Fade out over the last seconds of the row (e.g. when the song fades)">Fade at end (s) <input type="number" class="efade" min="0" step="0.5" value="${r.endFade || 0}"></label>` : ''}
+              ${r.targets.some(t => S.show.groups.has(t)) && !eff.use.includes('vocal') && !eff.dmx ? `<label class="chk permodel" title="On: each model in the group gets the effect separately. Off: the effect spans the whole group, across the yard."><input type="checkbox" class="pm" ${(r.perModel ?? eff.perModel) ? 'checked' : ''}> Each model on its own</label>` : ''}
               <span class="row-btns"><button type="button" class="btn small dup" title="Duplicate">Duplicate</button><button type="button" class="btn small del" title="Remove">Remove</button></span>
             </div>
             </div>`;
@@ -1449,16 +1497,16 @@
                 if (!faces.length) continue;
                 opts.insertAdjacentHTML('beforeend', `<label>${LABELS[k]} <select data-k="${k}">${faces.map(f => `<option ${f === val ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></label>`);
             } else if (eff.choices && eff.choices[k]) {
-                opts.insertAdjacentHTML('beforeend', `<label>${LABELS[k] || k} <select data-k="${k}">${eff.choices[k].map(x => `<option ${x === val ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></label>`);
+                opts.insertAdjacentHTML('beforeend', `<label>${(eff.labels && eff.labels[k]) || LABELS[k] || k} <select data-k="${k}">${eff.choices[k].map(x => `<option ${x === val ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></label>`);
             } else {
-                const label = k === 'size' && eff.id === 'lyrictext' ? 'Text size' : (LABELS[k] || k);
+                const label = k === 'size' && eff.id === 'lyrictext' ? 'Text size' : ((eff.labels && eff.labels[k]) || LABELS[k] || k);
                 opts.insertAdjacentHTML('beforeend', `<label>${label} <input type="number" data-k="${k}" value="${val}" step="${typeof def === 'number' && def % 1 !== 0 ? 0.1 : 1}"></label>`);
             }
         }
         el.querySelector('.pick').addEventListener('click', () => openPicker(r, 'targets', 'Choose lights'));
         el.querySelector('.trig').addEventListener('change', e => commit(() => {
             r.trigger = e.target.value;
-            const list = effectsFor(r.trigger);
+            const list = effectsFor(r.trigger, r.targets);
             if (!list.some(x => x.id === r.effect)) { r.effect = list[0].id; r.options = {}; }
         }));
         el.querySelector('.eff').addEventListener('change', e => commit(() => { r.effect = e.target.value; r.options = {}; delete r.perModel; }));

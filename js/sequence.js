@@ -100,6 +100,7 @@ const Sequencer = (() => {
         const problems = [];
         // props named in the plan that this show doesn't have: left out, and listed
         const missing = new Set();
+        const headCache = new Map();
         const markCache = new Map();
         const marks = id => { if (!markCache.has(id)) markCache.set(id, marksFor(id, song)); return markCache.get(id); };
 
@@ -162,11 +163,16 @@ const Sequencer = (() => {
                     }
                     const o = eff.needsFace ? { ...opts, face: opts.face || show.models.get(target).faces[0].name } : opts;
                     const isGroup = show.groups.has(target);
-                    const perModel = isGroup && (row.perModel ?? eff.perModel);
+                    const perModel = isGroup && (eff.dmx || (row.perModel ?? eff.perModel));
                     const level = row.level != null ? Math.max(0, Math.min(100, row.level)) : 100;
                     const endFade = row.endFade > 0 && n === spans.length - 1 ? Math.min(row.endFade, (eMs - sMs) / 1000) : 0;
                     const startFade = row.startFade > 0 && n === 0 ? Math.min(row.startFade, (eMs - sMs) / 1000) : 0;
-                    place(target, { sMs, eMs, eff, o, colors, pal, index, rowId: row.id, isGroup, perModel, level, endFade, startFade }, isEvent ? 1 : 0);
+                    // moving heads take only the Moving Head effect, and it only moves heads:
+                    // anything else would write colours into their pan / tilt channels
+                    if (!headCache.has(target)) headCache.set(target, Show.movingHeadsIn(show, target).length);
+                    const heads = headCache.get(target);
+                    if (eff.dmx ? !heads : (heads && show.models.has(target) && show.models.get(target).mh)) { if (!problems.includes(target)) problems.push(target); continue; }
+                    place(target, { sMs, eMs, eff, o, colors, pal, index, rowId: row.id, isGroup, perModel, level: eff.dmx ? 100 : level, endFade: eff.dmx ? 0 : endFade, startFade: eff.dmx ? 0 : startFade, target }, isEvent ? 1 : 0);
                     count++;
                 }
             });
@@ -263,6 +269,7 @@ const Sequencer = (() => {
     function renderFrame(prep, song, t) {
         const out = prep.colors;
         out.fill(0);
+        Effects.resetMovingHeads();
         const ms = t * 1000;
         const word = song.lyr ? itemAt(song.lyr.words, t) : null;
         for (const tgt of prep.targets) {
@@ -315,7 +322,7 @@ const Sequencer = (() => {
         const db = [], dbIdx = new Map();
         const ctx = { lyricTrack: LYRIC_TRACK };
         const refOf = fx => {
-            let s = fx.eff.settings(fx.o, ctx);
+            let s = fx.eff.settings(fx.o, { ...ctx, fx, show });
             // A group row's buffer has to be stated, or xLights uses the group's
             // default layout and the effect lands somewhere else than the preview shows.
             if (fx.isGroup) s = (fx.perModel ? 'B_CHOICE_BufferStyle=Per Model Default,' : 'B_CHOICE_BufferStyle=Per Preview,') + s;

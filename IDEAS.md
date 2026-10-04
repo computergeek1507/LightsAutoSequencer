@@ -236,6 +236,15 @@ hosting account) is the owner's to do; I can prepare everything up to that point
 
 ## Done
 
+- **2026-10-04:** Moving heads: DMX moving heads read from the layout (fixture MHn); a
+  *Moving head* effect (pattern, size, aim, rounds, spread between heads, brightness, colours)
+  exported as xLights' Moving Head commands, per head ("Per Model" buffer: xLights only runs it
+  on a head's own buffer); beams in the preview; ideas/randomizer include them by loudness;
+  other effects, brightness and fades never touch heads. Verified with an xLights render of a
+  4-head test layout: pan/tilt follow the pattern, colour and dimmer match.
+- **2026-10-04:** File menu (open song / project, recent, save, save as, auto-save, export),
+  ⤓ Export to xLights dialog replacing the save bar, project name with • for unsaved changes,
+  Ctrl+O / Ctrl+E. ⧉ Pop out: the preview in its own window (for a second screen).
 - **2026-10-03:** From tester feedback: a step tracker under the tabs (Song › Words (optional)
   › Your show › Plan the lights › Save for xLights) that ticks off, highlights the next step
   and jumps there; *Save* un-ticks when the plan changes after saving. Matrices and other
