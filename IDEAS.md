@@ -88,8 +88,8 @@ out.
 **Status:** 1, 2, 3, 4, 5 and 8 built (2026-10-03, see Done). Open: **6** (follow the voice)
 and **7** (colour from the feeling).
 
-**Result on Dusty Bibles**, rendered in xLights and measured with the benchmark from his own
-sequences (targets from his finished shows in brackets):
+**Result on Dusty Bibles**, rendered in xLights and measured with the benchmark from the owner's own
+sequences (targets from those finished shows in brackets):
 
 | | old Suggest | new Suggest |
 |---|---|---|
@@ -100,24 +100,24 @@ sequences (targets from his finished shows in brackets):
 | Dark time (5-10%) | 8% | 1-3% |
 
 Still to watch: dark time is a little low (the house is rarely fully off) and the mean is
-brighter than his references; a *Feeling* of Peaceful or a lower *Intensity* brings both
+brighter than the owner's references; a *Feeling* of Peaceful or a lower *Intensity* brings both
 down.
 
-## Second look: from "fits the music" to "looks like Ryan's" (review of 2026-10-03)
+## Second look: from "fits the music" to "looks like the owner's" (review of 2026-10-03)
 
 Watched a fresh default *Suggest* on Dusty Bibles (fit 98, words found) and measured what the
 fit score can't see. The timing side is now right: quiet start, build, held breath, flash
 into the chorus, whole-house hits, fade at the end. What's missing is taste, and most of it is
-already written down in his own notes (sequence-aesthetics, prop feedback, Dusty Bibles
+already written down in the owner's own notes (sequence-aesthetics, prop feedback, Dusty Bibles
 feedback):
 
-| What I saw | Measured | His rule |
+| What I saw | Measured | Owner's rule |
 |---|---|---|
 | Quiet parts are mostly a green block on the matrix | matrix = 63-65% of all light in Verse 1, 1 b, 7; 45% in choruses | Matrix is for content (lyrics in the chorus), not full-field fills; a butterfly there once made a quiet break brighter than the choruses |
 | Every part has the same colour mix | red/green/blue ≈ 38/37/25 in every loud part | Tiny palette per part; alternate red and green between verses and bar by bar in a chorus; blue for quiet parts |
 | A chorus is 12 props doing 8 different effects | chase, butterfly, bars, wash, marquee, twinkle, pinwheel, on | One house style per song: *shape-matched* for gentle songs (pinwheel on spinners, spirals on tree and canes, shockwave on snowflakes and crosses) or *unified* (one image across props) |
-| Canes, spinners, arches run as one group each | "All CandyCanes", "All Spinners" | He rejected group canes; wants each cane on its own row, sweeps that travel and cross; spinners counter-rotating |
-| The voice only moves the faces | 63-100% of each part is sung; no lyrics on the matrix | Lyrics on the matrix in the chorus (his ask); ~9 whole-house hits on the strongest sung moments, the only time the house breaks the beat |
+| Canes, spinners, arches run as one group each | "All CandyCanes", "All Spinners" | Group canes were rejected; wants each cane on its own row, sweeps that travel and cross; spinners counter-rotating |
+| The voice only moves the faces | 63-100% of each part is sung; no lyrics on the matrix | Lyrics on the matrix in the chorus (the owner's ask); ~9 whole-house hits on the strongest sung moments, the only time the house breaks the beat |
 | A part looks the same from start to end | Chorus 2 (23 s): look change start→end 0.14 | Direction or colour flips each phrase; the last chorus varies the detail |
 
 **Suggestions, in order of payoff:**
@@ -140,22 +140,22 @@ feedback):
 6. **Phrase changes.** Every 4 or 8 bars, flip chase direction or swap the colour pair; the last
    chorus gets a variation rather than a copy.
 7. **Grow the fit check** with these measures (matrix share, colour change between parts, vocal
-   accents, phrase variation), so *Try a few* also prefers ideas that look like his.
+   accents, phrase variation), so *Try a few* also prefers ideas that look like the owner's.
 8. **Small UI:** the house photo fills only about 3/4 of the preview; the rest is a black band.
    Fit the preview's width to the photo.
 
-**Recommendation:** 1 + 4 together (they change the look most and match his strongest
+**Recommendation:** 1 + 4 together (they change the look most and match the owner's strongest
 feedback), then 2 and 3, then 5.
 
-**Ryan's addition (2026-10-03):** a long part (a long chorus) should change a little where
+**Owner's addition (2026-10-03):** a long part (a long chorus) should change a little where
 its energy changes, automatically, without having to split it.
 
 **Status:** built 2026-10-03: **2** as an option (*Words on the matrix in choruses*), **3**,
-**8**, and Ryan's addition (see Done). Open: **1**, **4**, **5**, **6**, **7**.
+**8**, and the owner's addition (see Done). Open: **1**, **4**, **5**, **6**, **7**.
 
-Result on Dusty Bibles (xLights render, benchmark from his sequences): drum hits that show
-57% (target ≥ 45%), loudness r 0.48 (his 0.40-0.60), median below mean; xLights vs preview
-0.98. Dark time is still only 1% (his 5-10%).
+Result on Dusty Bibles (xLights render, benchmark from the owner's sequences): drum hits that show
+57% (target ≥ 45%), loudness r 0.48 (owner's 0.40-0.60), median below mean; xLights vs preview
+0.98. Dark time is still only 1% (owner's 5-10%).
 
 ## Going public (putting it online for everyone)
 
@@ -171,7 +171,7 @@ bandwidth.
 
 **What has to happen first:**
 
-1. ~~**Model types.**~~ *(done 2026-10-03 except DMX, image and label models)* Only the 10 types in Ryan's layout are drawn properly. Others (Icicles,
+1. ~~**Model types.**~~ *(done 2026-10-03 except DMX, image and label models)* Only the 10 types in the owner's layout are drawn properly. Others (Icicles,
    Circle, Spinner, Wreath, Sphere, Candy Cane model, DMX, …) fall back to a single dot, so
    other people's previews would look broken. Port the rest from xLights' `src-core/models`.
 2. **License.** xLights is GPLv3 and the model geometry here is ported from it; the
@@ -182,7 +182,7 @@ bandwidth.
 4. **Browser support.** Chrome and Edge do everything. Firefox and Safari can't open folders
    (the "pick the two files" fallback works) and the voice models may fall back to slower
    CPU paths. Say so on the page, and test there.
-5. ~~**Generalize Ryan-specific defaults.**~~ *(mostly done 2026-10-03: group-by-members guessing, Prop types…, note on the page)* Idea weights come from his 44 sequences (fine as a
+5. ~~**Generalize owner-specific defaults.**~~ *(mostly done 2026-10-03: group-by-members guessing, Prop types…, note on the page)* Idea weights come from the owner's 44 sequences (fine as a
    starting point, but say so); the prop-type guessing relies on group names like "All
    Arches"; check the "not wired to a controller" rule on other layouts.
 6. **Test with other shows.** Ask a few xLights users for their `xlights_rgbeffects.xml`;
@@ -192,8 +192,8 @@ bandwidth.
 8. **Optional:** host the models ourselves (Cloudflare R2) if Hugging Face rate-limits
    heavy use; that adds a small bandwidth cost.
 
-**Status:** waiting for Ryan's go-ahead. Publishing itself (creating the repo and the
-hosting account) is his to do; I can prepare everything up to that point.
+**Status:** waiting for the owner's go-ahead. Publishing itself (creating the repo and the
+hosting account) is the owner's to do; I can prepare everything up to that point.
 
 ## Known weak spots
 
@@ -244,7 +244,7 @@ hosting account) is his to do; I can prepare everything up to that point.
   - Fixed: a prop whose kind couldn't be guessed crashed *Suggest a plan*.
   - Groups are judged by their members; small "Tree" models count as mini trees; a part of
     a prop ("Snowflake/Outline") belongs to that prop. *Prop types…* overrides any guess.
-    On Ryan's show the only change: house lines now use *All House Outline* (roofline and
+    On the owner's show the only change: house lines now use *All House Outline* (roofline and
     verticals) instead of *All House Horizontal* (mostly window segments).
   - Page notes that ideas start from one person's style.
 - **2026-10-03:** Tutorial: *How to use* page (`tutorial.html`, 11 steps plus questions and
