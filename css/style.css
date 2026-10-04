@@ -598,3 +598,7 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; backgro
 
 .popout-body #previewPanel .viewer-wrap { max-width: none; display: flex; justify-content: center; background: none; }
 .popout-body #previewPanel .pv-tip, .popout-body #previewPanel .panel-head h2 { display: revert; }
+
+/* moving heads box */
+.heads-parts { max-height: 180px; overflow: auto; width: 100%; }
+#headsBox input[type=range] { width: 130px; }

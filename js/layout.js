@@ -74,6 +74,8 @@
     const saved = load();
     if (Array.isArray(saved.order)) {
         for (const id of saved.order) { const b = stack.querySelector(`:scope > [data-block="${id}"]`); if (b) stack.appendChild(b); }
+        // boxes added since the order was saved go after Ideas
+        for (const b of blocks()) if (!saved.order.includes(b.dataset.block)) { const ideas = stack.querySelector(':scope > [data-block="ideas"]'); if (ideas) ideas.after(b); }
     }
     for (const b of blocks()) b._setFold(Array.isArray(saved.min) && saved.min.includes(b.dataset.block));
 
@@ -102,7 +104,7 @@
     }
     $('layoutLock').addEventListener('click', () => setLocked(!locked));
     $('layoutReset').addEventListener('click', () => {
-        for (const id of ['intro', 'ideas', 'change', 'view']) { const b = stack.querySelector(`:scope > [data-block="${id}"]`); if (b) stack.appendChild(b); }
+        for (const id of ['intro', 'ideas', 'heads', 'change', 'view']) { const b = stack.querySelector(`:scope > [data-block="${id}"]`); if (b) stack.appendChild(b); }
         for (const b of blocks()) b._setFold(false);
         save();
     });

@@ -475,6 +475,16 @@
     // The fixtures themselves, drawn like xLights does: base, yoke and head,
     // turned the way the beam points, the lens glowing in its colour. Never
     // smaller than easy-to-see; grey when nothing drives it.
+    // how big the fixtures and beams look (a preference of this browser)
+    function headView() {
+        if (!S.headView) {
+            try { S.headView = JSON.parse(localStorage.getItem('xlweb-headview') || 'null'); } catch (e) { S.headView = null; }
+            S.headView = { size: 1, beam: 0.5, ...(S.headView || {}) };
+        }
+        return S.headView;
+    }
+    const headSize = (h, k, dpr) => headView().size * Math.max(18 * dpr, 30 * h.scale * k);
+
     function headAim(s) {
         if (!s) return { a: 0, yoke: 1 };
         const pan = s.pan * Math.PI / 180, tilt = s.tilt * Math.PI / 180;
@@ -488,7 +498,7 @@
         const dpr = V.W / canvas.clientWidth;
         for (const h of V.heads) {
             const s = st[h.g];
-            const size = Math.max(34 * dpr, 60 * h.scale * k);      // fixture height on the canvas
+            const size = headSize(h, k, dpr);                       // fixture height on the canvas
             const x = (h.x - win.x) * k, y = (h.y - win.y) * k;
             const lit = s ? Math.max(s.r, s.g, s.b) / 255 : 0;
             const { a, yoke } = headAim(s);
@@ -529,7 +539,7 @@
         const V = S.view, win = S.win;
         if (!V.heads || !V.heads.length) return;
         const st = Effects.movingHeadState();
-        const k = V.W / win.w, L = V.H * 0.55;
+        const k = V.W / win.w, L = V.H * headView().beam;
         g.save();
         g.globalCompositeOperation = 'lighter';
         for (const h of V.heads) {
@@ -540,7 +550,7 @@
             const pan = s.pan * Math.PI / 180, tilt = s.tilt * Math.PI / 180;
             const dx = Math.sin(pan) * Math.sin(tilt), dy = -Math.cos(tilt);
             // from the lens of the fixture drawn by drawHeads
-            const size = Math.max(34 * (V.W / canvas.clientWidth), 60 * h.scale * k), ang = Math.atan2(dx, -dy);
+            const size = headSize(h, k, V.W / canvas.clientWidth), ang = Math.atan2(dx, -dy);
             const x0 = (h.x - win.x) * k + Math.sin(ang) * size * 0.3, y0 = (h.y - win.y) * k + size * 0.13 - Math.cos(ang) * size * 0.3;
             const x1 = x0 + dx * L, y1 = y0 + dy * L;
             const nx = -dy, ny = dx, wEnd = L * 0.09;
@@ -1337,6 +1347,7 @@
         if (!isel.options.length) isel.innerHTML = Ideas.INTENSITIES.map(x => `<option value="${x.id}">${esc(x.label)}</option>`).join('');
         isel.value = S.plan.ideaIntensity || 'auto';
         $('ideaMatrixWords').checked = !!S.plan.ideaMatrixWords;
+        drawHeadsBox();
         $('ideaPhrased').checked = S.plan.ideaPhrased !== false;
         $('ideaAlike').checked = !!S.plan.ideaAlike;
         $('onlyNow').checked = !!S.onlyNow;
@@ -1428,6 +1439,11 @@
         const foot = document.createElement('div');
         foot.className = 'btnrow tight';
         foot.innerHTML = `<button type="button" class="btn small add">+ Add lights</button>${!isWhole ? `<button type="button" class="btn small splitHere" title="Split this section where the song is now">Split at playhead</button><button type="button" class="btn small ren">Rename</button>` : ''}${c.rows.length ? '<button type="button" class="btn small clearSec">Clear</button>' : ''}${!isWhole ? `<label class="chk small" title="The lights of this part stop 1.5 beats before it ends, so the next part lands on a dark house"><input type="checkbox" class="dipChk" ${c.dip > 0 ? 'checked' : ''}> Hold a breath at the end</label>` : ''}`;
+        if (!isWhole && hasHeads()) {
+            const has = c.rows.some(r => r.effect === 'moving');
+            foot.insertAdjacentHTML('afterbegin', `<button type="button" class="btn small addHeads" title="${has ? 'A new moving-head idea for this part' : 'Add the moving heads to this part'}; nothing else changes">${has ? '🎲 New moving heads' : '+ Moving heads'}</button>`);
+            foot.querySelector('.addHeads').addEventListener('click', () => window.addHeadsTo(sec.id));
+        }
         const dip = foot.querySelector('.dipChk');
         if (dip) dip.addEventListener('change', () => commit(() => { if (dip.checked) c.dip = 1.5; else delete c.dip; }));
         // how this part comes in from the one before it
@@ -1630,6 +1646,7 @@
         exclude: S.plan.ideaExclude || [],
         mix: S.plan.ideaMix || null,
         matrixWords: !!S.plan.ideaMatrixWords,
+        mhParts: S.plan.mh && Array.isArray(S.plan.mh.parts) ? S.plan.mh.parts : null,
         phrased: S.plan.ideaPhrased !== false,
     });
     $('ideaMatrixWords').addEventListener('change', e => { S.plan.ideaMatrixWords = e.target.checked; savePlan(); });
@@ -2043,6 +2060,90 @@
 
     const rcDlg = $('recolourDlg');
     let rc = null;    // { before: snapshot, scheme, ids: Set }
+
+    // ---------- moving heads ----------
+
+    function hasHeads() { return !!(S.show && [...S.show.models.values()].some(m => m.mh)); }
+    function headParts() {
+        const song = XLWeb.song();
+        const p = S.plan.mh && Array.isArray(S.plan.mh.parts) ? S.plan.mh.parts : null;
+        return new Set(p || (song ? song.sections.map(s => s.id) : []));
+    }
+    function setHeadParts(set) {
+        const song = XLWeb.song();
+        S.plan.mh = S.plan.mh || {};
+        S.plan.mh.parts = set.size === song.sections.length ? null : [...set];
+        savePlan();
+        document.dispatchEvent(new CustomEvent('xl:changed'));
+    }
+    const isHeadRow = r => r.effect === 'moving';
+    function drawHeadsBox() {
+        const box = $('headsBox');
+        const song = XLWeb.song();
+        if (!hasHeads() || !song || !S.plan) { box.hidden = true; return; }
+        box.hidden = false;
+        const heads = [...S.show.models.values()].filter(m => m.mh);
+        $('headsList').textContent = heads.map(m => `${m.name} (MH${m.mh.fixture})`).join(', ');
+        const parts = headParts();
+        const kinds = [...new Set(song.sections.map(s => Sequencer.kindOf(s.name)))];
+        $('headsQuick').innerHTML = '<button type="button" class="btn tiny" data-k="*">Every part</button>' + kinds.map(k => `<button type="button" class="btn tiny" data-k="${esc(k)}">Only ${esc(k)}</button>`).join('') + '<button type="button" class="btn tiny" data-k="">None</button>';
+        $('headsParts').innerHTML = song.sections.map(s => {
+            const has = (S.plan.sections[s.id] || { rows: [] }).rows.some(isHeadRow);
+            return `<label class="pick-item"><input type="checkbox" value="${s.id}" ${parts.has(s.id) ? 'checked' : ''}> <span>${esc(s.name)}</span>${has ? ' <em>has heads</em>' : ''}</label>`;
+        }).join('');
+        $('headsQuick').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+            const k = b.dataset.k;
+            setHeadParts(new Set(k === '*' ? song.sections.map(s => s.id) : k === '' ? [] : song.sections.filter(s => Sequencer.kindOf(s.name) === k).map(s => s.id)));
+            drawHeadsBox();
+        }));
+        $('headsParts').querySelectorAll('input').forEach(cb => cb.addEventListener('change', () => {
+            const set = headParts();
+            if (cb.checked) set.add(cb.value); else set.delete(cb.value);
+            setHeadParts(set);
+        }));
+        const v = headView();
+        $('headsSize').value = v.size;
+        $('headsBeam').value = v.beam;
+    }
+    for (const [id, key] of [['headsSize', 'size'], ['headsBeam', 'beam']]) {
+        $(id).addEventListener('input', e => {
+            headView()[key] = parseFloat(e.target.value);
+            try { localStorage.setItem('xlweb-headview', JSON.stringify(headView())); } catch (err) { /* storage blocked */ }
+            S.dirty = true;
+        });
+    }
+    // new moving-head rows for some parts; everything else untouched
+    function headIdeasFor(ids, replace) {
+        const song = XLWeb.song();
+        let n = 0;
+        commit(() => {
+            for (const s of song.sections) {
+                const c = container(s.id);
+                const has = c.rows.some(isHeadRow);
+                if (!ids.has(s.id)) { if (replace === 'sync' && has) { c.rows = c.rows.filter(r => !isHeadRow(r)); n++; } continue; }
+                if (has && replace === 'sync') continue;
+                const rows = Ideas.movingHeadIdea(s, song, S.show, { seed: Math.floor(Math.random() * 2 ** 31), scheme: ideaScheme(), ...ideaMood() });
+                if (!rows.length) continue;
+                c.rows = c.rows.filter(r => !isHeadRow(r)).concat(rows);
+                n++;
+            }
+        });
+        return n;
+    }
+    $('headsApply').addEventListener('click', () => {
+        const n = headIdeasFor(headParts(), 'sync');
+        setPlanStatus(n ? `Moving heads updated in ${n} part${n > 1 ? 's' : ''}; nothing else changed.` : 'The moving heads already match the ticked parts.');
+    });
+    $('headsNew').addEventListener('click', () => {
+        const n = headIdeasFor(headParts(), 'new');
+        setPlanStatus(`New moving-head ideas in ${n} part${n === 1 ? '' : 's'}; nothing else changed.`);
+    });
+    window.addHeadsTo = id => {
+        const set = headParts(); set.add(id); setHeadParts(set);
+        headIdeasFor(new Set([id]), 'new');
+        const sec = XLWeb.song().sections.find(s => s.id === id);
+        setPlanStatus(`Moving heads added to ${sec ? sec.name : 'that part'}; nothing else changed.`);
+    };
 
     // ---------- words on the matrix ----------
     //

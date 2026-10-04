@@ -236,6 +236,10 @@ hosting account) is the owner's to do; I can prepare everything up to that point
 
 ## Done
 
+- **2026-10-04:** *Moving heads* box (only when the show has heads): the parts they join (ideas
+  and Randomize only use heads there), *Apply to ticked parts* / *New moving-head ideas* that
+  change only the head rows, fixture size and beam length for the preview (smaller default);
+  *+ Moving heads* on each part.
 - **2026-10-04:** Moving heads: DMX moving heads read from the layout (fixture MHn); a
   *Moving head* effect (pattern, size, aim, rounds, spread between heads, brightness, colours)
   exported as xLights' Moving Head commands, per head ("Per Model" buffer: xLights only runs it

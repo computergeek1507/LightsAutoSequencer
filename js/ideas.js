@@ -443,7 +443,8 @@ const Ideas = (() => {
     // turn: which repeat (colours take turns); flip: turn moving things round
     // (a later phrase of a long part); matrixWords: the matrix shows the lyrics
     // in lifting parts and is a dim bed everywhere else.
-    function sectionIdea(section, song, show, { pool, seed, scheme, feel = 'auto', intensity = null, exclude = [], mix = null, energy = null, style = null, turn = null, flip = false, matrixWords = false }) {
+    // mhParts: the parts moving heads join (null: every part)
+    function sectionIdea(section, song, show, { pool, seed, scheme, feel = 'auto', intensity = null, exclude = [], mix = null, energy = null, style = null, turn = null, flip = false, matrixWords = false, mhParts = null }) {
         const excluded = exclude instanceof Set ? exclude : modelsOf(show, exclude);
         if (pool && pool.length && excluded.size) pool = pool.filter(t => ![...modelsOf(show, [t])].some(m => excluded.has(m)));
         const rng = rngFrom(seed);
@@ -474,6 +475,7 @@ const Ideas = (() => {
             for (const e of entries) {
                 const lv = level(mix, e.key, kind);
                 if (lv === 'never') continue;
+                if (e.key === 'class:movinghead' && mhParts && !mhParts.includes(section.id)) continue;
                 if (lv === 'always') always.push(e); else rest.push({ e, w: LEVEL_WEIGHT[lv] });
             }
             order = [];
@@ -608,6 +610,22 @@ const Ideas = (() => {
         return rows;
     }
 
+    // Just the moving-head row(s) for a part: the same choices sectionIdea would
+    // make for them (loudness, colours, speed), without touching anything else.
+    function movingHeadIdea(section, song, show, { seed, scheme, feel = 'auto', intensity = null, exclude = [] }) {
+        const excluded = exclude instanceof Set ? exclude : modelsOf(show, exclude);
+        const c = candidates(show, excluded).get('movinghead');
+        if (!c || !c.targets.length) return [];
+        const bars = Math.max(1, section.bars || Math.round((section.e - section.s) / (song.grid.T * song.grid.meter)));
+        const f = FEELS[feel] || FEELS.auto;
+        let energy = partEnergies(song).get(section.id) ?? section.energy ?? 0.5;
+        energy = intensity != null ? intensity : Math.max(0.05, Math.min(0.95, energy + f.shift));
+        const lift = LIFT.test(section.name) || energy >= 0.75;
+        const cp = colourPlan(scheme, energy, lift, Math.max(0, turnOf(song, section)));
+        const ctx = { energy, style: energy, bars, scheme, feel: f, speed: f.speed, level: levelFor(energy), cp, flip: false };
+        return c.targets.map(t => rowFor(show, t, rngFrom(seed ^ hashStr(t)), ctx));
+    }
+
     // ---------- the whole song ----------
 
     // sections: which sections get a new idea (default all); whole: redo the
@@ -698,7 +716,7 @@ const Ideas = (() => {
         }
     }
 
-    function planIdea(song, show, { seed, scheme, alike, pools, sections, whole = true, feel = 'auto', intensity = null, exclude = [], mix = null, matrixWords = false, phrased = true }) {
+    function planIdea(song, show, { seed, scheme, alike, pools, sections, whole = true, feel = 'auto', intensity = null, exclude = [], mix = null, matrixWords = false, phrased = true, mhParts = null }) {
         const rng = rngFrom(seed);
         const plan = Sequencer.emptyPlan();
         const excluded = modelsOf(show, exclude);
@@ -735,7 +753,7 @@ const Ideas = (() => {
             const own = !alike || !!(pool && pool.length);
             const rows = partIdea(s, song, show, {
                 pool, seed: own ? Math.floor(rng() * 2 ** 31) : kindSeed.get(kind), scheme, feel, intensity, exclude: excluded, mix,
-                energy: energies.get(s.id), style: own ? null : avg(kindStyle.get(kind)), matrixWords, phrased,
+                energy: energies.get(s.id), style: own ? null : avg(kindStyle.get(kind)), matrixWords, phrased, mhParts,
             });
             plan.sections[s.id] = { rows, pool: pool || [] };
         }
@@ -796,5 +814,5 @@ const Ideas = (() => {
         return fade >= 1.5 ? Math.round(fade * 10) / 10 : 0;
     }
 
-    return { TRANSITIONS, applyTransition, transitionProps, guessClass, CLASS_LABELS, sectionIdea, partIdea, planIdea, partEnergies, phrases, classify, candidates, mixEntries, FEELS, INTENSITIES, LEVELS };
+    return { movingHeadIdea, TRANSITIONS, applyTransition, transitionProps, guessClass, CLASS_LABELS, sectionIdea, partIdea, planIdea, partEnergies, phrases, classify, candidates, mixEntries, FEELS, INTENSITIES, LEVELS };
 })();

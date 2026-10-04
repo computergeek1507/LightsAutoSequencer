@@ -312,6 +312,30 @@
           </details>
         </section>
 
+          <section class="ctl-group wide" data-block="heads" id="headsBox" hidden>
+            <div class="ctl-head"><h3>Moving heads</h3><span class="muted small" id="headsList"></span></div>
+            <div class="ctl-cols">
+              <div class="ctl-col">
+                <h4>Parts they join</h4>
+                <span class="hint">Ideas and 🎲 Randomize only use the moving heads in ticked parts.</span>
+                <div class="btnrow tight" id="headsQuick"></div>
+                <div class="pick-list heads-parts" id="headsParts"></div>
+              </div>
+              <div class="ctl-col">
+                <h4>Change just the heads</h4>
+                <span class="hint">Every other light row stays exactly as it is.</span>
+                <button type="button" class="btn small" id="headsApply" title="Add a moving-head row to ticked parts that have none; take it out of parts that aren't ticked">Apply to ticked parts</button>
+                <button type="button" class="btn small" id="headsNew" title="A new moving-head idea for every ticked part">🎲 New moving-head ideas</button>
+              </div>
+              <div class="ctl-col">
+                <h4>In the preview</h4>
+                <label>Fixture size <input type="range" id="headsSize" min="0.4" max="2.5" step="0.1"></label>
+                <label>Beam length <input type="range" id="headsBeam" min="0.15" max="1" step="0.05"></label>
+                <span class="hint">Only how they look here; the sequence is the same.</span>
+              </div>
+            </div>
+          </section>
+
           <section class="ctl-group" data-block="change">
             <div class="ctl-head"><h3>Change what's planned</h3></div>
             <div class="ctl-row">
