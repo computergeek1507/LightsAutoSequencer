@@ -12,7 +12,7 @@
 <header class="topbar">
   <div class="topbar-row">
     <h1>Lights Auto Sequencer <span class="sub">make xLights sequences in the browser</span></h1>
-    <nav class="help-links"><label class="theme-sel" title="Colours of the page"><span class="sr">Theme</span><select id="themeSel" aria-label="Theme"><option value="auto">🖥 Auto</option><option value="light">☀ Light</option><option value="dark">🌙 Dark</option></select></label> <button type="button" class="btn small" id="tourBtn">Show me around</button> <a class="btn small" href="tutorial.html" target="_blank" rel="noopener">How to use</a> <a class="btn small discord" href="https://discord.gg/xjgWweqCEs" target="_blank" rel="noopener" title="Suggestions, help and show-off on Discord">💬 Discord</a></nav>
+    <nav class="help-links"><label class="theme-sel" title="Colours of the page"><span class="sr">Theme</span><select id="themeSel" aria-label="Theme"><option value="auto">🖥 Auto</option><option value="light">☀ Light</option><option value="dark">🌙 Dark</option></select></label> <button type="button" class="btn small" id="whatsNewBtn" title="Release notes, and when the site was last updated">✨ What's new</button> <button type="button" class="btn small" id="tourBtn">Show me around</button> <a class="btn small" href="tutorial.html" target="_blank" rel="noopener">How to use</a> <a class="btn small discord" href="https://discord.gg/xjgWweqCEs" target="_blank" rel="noopener" title="Suggestions, help and show-off on Discord">💬 Discord</a></nav>
   </div>
 </header>
 
@@ -20,6 +20,10 @@
   <div class="proj-banner" id="projBanner" role="status" aria-live="polite" hidden>
     <div id="projBannerText"></div>
     <div class="btnrow tight" id="projBannerBtns"></div>
+  </div>
+  <div class="tour-welcome wn-note" id="wnNote" hidden>
+    <span>✨ <b id="wnNoteText">The site was updated.</b></span>
+    <span><button type="button" class="btn small primary" id="wnNoteOpen">See what's new</button> <button type="button" class="btn small" id="wnNoteClose">Dismiss</button></span>
   </div>
   <div class="tour-welcome" id="tourWelcome" hidden>
     <span><b>New here?</b> A two-minute tour shows where everything is.</span>
@@ -374,6 +378,7 @@
   New here? <a href="tutorial.html" target="_blank" rel="noopener">Read the guide</a>.</p>
   <p>An independent tool for <a href="https://xlights.org" target="_blank" rel="noopener">xLights</a>, not made by the xLights project.
   Free and open source (GPLv3): <a href="https://github.com/socman1984-hub/LightsAutoSequencer" target="_blank" rel="noopener">source and issues on GitHub</a>.</p>
+  <p><span id="footUpdated"></span> · <a href="#" id="footWhatsNew">What's new</a></p>
   <p>Ideas, questions or a sequence to show off? <a href="https://discord.gg/xjgWweqCEs" target="_blank" rel="noopener"><b>Join us on Discord</b></a>.</p>
 </footer>
 
@@ -423,6 +428,14 @@
       </div>
       <button type="submit" class="btn primary">Done</button>
     </div>
+  </form>
+</dialog>
+
+<dialog id="whatsNewDlg" class="picker whatsnew-dlg">
+  <form method="dialog" class="picker-inner">
+    <div class="picker-head"><h2>✨ What's new</h2><span class="muted small" id="wnUpdated"></span></div>
+    <div class="wn-list" id="wnList"></div>
+    <div class="picker-foot"><a class="small" href="https://github.com/socman1984-hub/LightsAutoSequencer/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Full history on GitHub</a><button type="button" class="btn primary" id="wnClose">Close</button></div>
   </form>
 </dialog>
 
@@ -559,5 +572,6 @@
 <script src="js/layout.js"></script>
 <script src="js/steps.js"></script>
 <script src="js/tour.js"></script>
+<script src="js/whatsnew.js"></script>
 </body>
 </html>

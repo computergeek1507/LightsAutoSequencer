@@ -275,6 +275,11 @@ show); 7 the test hooks stay on purpose (harmless, used for testing); 8 not need
 
 ## Done
 
+- **2026-10-04:** ✨ What's new: release notes (`releases.json`, newest first, New / Better /
+  Fixed) in a dialog from the header, a dot and a one-time note for returning visitors, and
+  "Last updated …" (the newest commit on GitHub) in the dialog and footer. `CHANGELOG.md` is
+  built from the same file (`node tools/changelog.js`). **Routine for every push:** add or
+  extend the release at the top of `releases.json`, run the script, commit, push.
 - **2026-10-04:** Fixed: moving heads set to "No Controller" in xLights (common for DMX with an
   absolute channel, like the owner's) were skipped by ideas and Randomize, though the Moving
   heads box showed. Heads always count now; a part ticked in the box gets the heads even when

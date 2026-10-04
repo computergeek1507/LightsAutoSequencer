@@ -602,3 +602,19 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; backgro
 /* moving heads box */
 .heads-parts { max-height: 180px; overflow: auto; width: 100%; }
 #headsBox input[type=range] { width: 130px; }
+
+/* what's new */
+#whatsNewBtn { position: relative; }
+#whatsNewBtn.unseen::after { content: ''; position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface); }
+.whatsnew-dlg { max-width: 720px; }
+.wn-list { overflow: auto; padding: 4px 18px 12px; }
+.wn-release { border-top: 1px solid var(--line); padding: 12px 0 4px; }
+.wn-release:first-child { border-top: 0; }
+.wn-release h3 { margin: 0 0 6px; font-size: 15px; }
+.wn-release ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.wn-release li { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px; line-height: 1.45; }
+.wn-tag { flex: none; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; border-radius: 999px; padding: 1px 7px; color: #fff; background: var(--wave); min-width: 52px; text-align: center; }
+.wn-tag.new { background: var(--accent); }
+.wn-tag.better { background: var(--wave); }
+.wn-tag.fixed { background: var(--good); }
+.wn-release:not(.latest) { opacity: .92; }
