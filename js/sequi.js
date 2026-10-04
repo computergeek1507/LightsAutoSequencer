@@ -152,13 +152,14 @@
     }
 
     // The part of xLights' preview area the viewer shows (preview units, y down):
-    // the house photo and every light, not the empty canvas beside them. While
-    // the photo is being lined up it is the whole area, so it can move freely.
+    // the house photo and every light, not the empty canvas beside them, even
+    // lights placed outside the preview area. While the photo is being lined up
+    // it also takes in the whole preview area, so the photo can move freely.
     function updateWindow() {
         const sh = S.show, V = S.view;
         if (!sh || !V) return;
         let win = { x: 0, y: 0, w: sh.previewW, h: sh.previewH };
-        if (!S.bgAdjusting && V.px.length) {
+        if (V.px.length) {
             let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
             for (let k = 0; k < V.px.length; k++) {
                 const x = V.px[k], y = V.py[k];
@@ -170,13 +171,17 @@
             }
             const m = 0.03 * Math.max(x1 - x0, y1 - y0, 1);
             x0 -= m; x1 += m; y0 -= m; y1 += m;
-            if (bgImg) {
+            if (S.bgAdjusting) {
+                // lining up the photo: the whole preview area too, so it can move freely
+                x0 = Math.min(x0, 0); y0 = Math.min(y0, 0);
+                x1 = Math.max(x1, sh.previewW); y1 = Math.max(y1, sh.previewH);
+            } else if (bgImg) {
                 const r = bgRect(), top = sh.previewH - r.y - r.h;
                 x0 = Math.min(x0, r.x); x1 = Math.max(x1, r.x + r.w);
                 y0 = Math.min(y0, top); y1 = Math.max(y1, top + r.h);
             }
-            x0 = Math.max(0, x0); y0 = Math.max(0, y0);
-            x1 = Math.min(sh.previewW, x1); y1 = Math.min(sh.previewH, y1);
+            // No clamping to xLights' preview size: props are often placed past
+            // its edges (xLights still shows them), and clamping cut them off.
             if (x1 - x0 > 10 && y1 - y0 > 10) win = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
         }
         S.win = win;
