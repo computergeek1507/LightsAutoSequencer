@@ -1513,7 +1513,7 @@
     let pendingProjectHandle = null;
     let restoring = false;
 
-    function setProjStatus(msg) { $('projStatus').textContent = msg; }
+    function setProjStatus(msg) { $('projStatus').textContent = msg; if (typeof updateTitle === 'function') setTimeout(updateTitle, 0); }
 
     function markDirty() {
         if (restoring || !state.buffer) return;
@@ -1746,6 +1746,26 @@
     }
 
     $('saveProj').addEventListener('click', e => saveProject(e.shiftKey));
+    // the File menu
+    const menuDo = fn => () => { closeProjMenu(); fn(); };
+    $('fmSong').addEventListener('click', menuDo(async () => { if (await confirmLeave()) pickSong(); }));
+    $('fmSave').addEventListener('click', menuDo(() => saveProject(false)));
+    $('fmSaveAs').addEventListener('click', menuDo(() => saveProject(true)));
+    $('fmExport').addEventListener('click', menuDo(() => window.XLSeq && XLSeq.openExport()));
+    $('fmTiming').addEventListener('click', menuDo(() => $('exportX').click()));
+    $('fmJson').addEventListener('click', menuDo(() => $('exportJ').click()));
+    $('exportBtn').addEventListener('click', () => window.XLSeq && XLSeq.openExport());
+
+    // The project's name beside the buttons (and in the window title), with a
+    // dot while there are unsaved changes, as in most programs.
+    function updateTitle() {
+        const name = state.projectHandle ? state.projectHandle.name.replace(/\.lightseq\.json$/i, '').replace(/\.json$/i, '') : (state.fileName ? `${state.fileName} (not saved yet)` : '');
+        const dirty = state.projectDirty && hasWork();
+        $('projTitle').textContent = name ? (dirty ? '• ' : '') + name : '';
+        $('projTitle').classList.toggle('dirty', !!dirty);
+        document.title = name ? `${dirty ? '• ' : ''}${name.replace(/ \(not saved yet\)$/, '')} – Lights Auto Sequencer` : 'Lights Auto Sequencer';
+    }
+    setInterval(updateTitle, 1000);
     $('openProj').addEventListener('click', () => pickProject());
     $('openProj0').addEventListener('click', () => pickProject());
     $('projFile').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) openProjectFile(f); });
@@ -1939,6 +1959,8 @@
     });
     document.addEventListener('keydown', e => {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveProject(e.shiftKey); }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') { e.preventDefault(); pickProject(); }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e' && state.buffer) { e.preventDefault(); if (window.XLSeq) XLSeq.openExport(); }
     });
 
     // ---------- tabs ----------

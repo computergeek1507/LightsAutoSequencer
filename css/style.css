@@ -576,3 +576,25 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; backgro
 .steps-bar li.done button { color: var(--text); }
 .steps-bar li.next button { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 10%, transparent); font-weight: 600; }
 .steps-bar li.next .n { background: var(--accent); color: #fff; }
+
+/* File menu and project title */
+.file-menu { width: min(340px, calc(100vw - 32px)); padding: 6px; }
+.fm-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; background: none; border: 0; border-radius: 7px; color: var(--text); font: inherit; font-size: 13.5px; padding: 7px 10px; cursor: pointer; text-align: left; }
+.fm-item:hover, .fm-item:focus-visible { background: var(--lane); outline: none; }
+.fm-item kbd { font: 11px ui-monospace, monospace; color: var(--muted); }
+.fm-check { cursor: pointer; }
+.file-menu hr { border: 0; border-top: 1px solid var(--line); margin: 6px 4px; }
+.file-menu #projMenuList .pm-foot { border-top: 0; margin-top: 0; padding-top: 2px; }
+.proj-title { font-weight: 600; font-size: 13px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-title.dirty { color: var(--accent); }
+.export-dlg { max-width: 560px; }
+
+/* the preview in its own window */
+.popout-body { margin: 0; padding: 10px; background: var(--bg); }
+.popout-body #previewPanel { margin: 0; }
+.popped-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 13px; }
+
+.file-menu #pmOther { display: none; }
+
+.popout-body #previewPanel .viewer-wrap { max-width: none; display: flex; justify-content: center; background: none; }
+.popout-body #previewPanel .pv-tip, .popout-body #previewPanel .panel-head h2 { display: revert; }

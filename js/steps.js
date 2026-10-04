@@ -18,7 +18,7 @@
         { label: 'Words', optional: true, hint: 'Optional: find the words, for singing faces and lyrics on a matrix', done: () => !!(XLWeb.song() && XLWeb.song().lyr), go: () => go('song', 'vocalPanel') },
         { label: 'Your show', hint: 'Open your xLights show folder', done: () => !!S().show, go: () => go('seq', 'showPanel') },
         { label: 'Plan the lights', hint: 'Suggest a plan, then change anything you like', done: () => planned(), go: () => go('seq', 'planPanel') },
-        { label: 'Save for xLights', hint: 'Save the .xsq into your show folder, then open it in xLights and render', done: () => !!(S().xsqSavedAt && (!S().planChangedAt || S().xsqSavedAt >= S().planChangedAt)), go: () => go('seq', 'xsqPanel') },
+        { label: 'Export to xLights', hint: 'Export the .xsq into your show folder, then open it in xLights and render', done: () => !!(S().xsqSavedAt && (!S().planChangedAt || S().xsqSavedAt >= S().planChangedAt)), go: () => { if (window.XLSeq) XLSeq.openExport(); } },
     ];
     function draw() {
         if (!window.XLWeb || !XLWeb.song()) { bar.hidden = true; return; }

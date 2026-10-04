@@ -61,14 +61,27 @@
         <label class="chk"><input type="checkbox" id="follow" checked> Follow</label>
         <span id="clock" class="clock">0:00.000</span>
       </div>
-      <div class="project">
-        <button type="button" class="btn small primary" id="saveProj" title="Save everything (Ctrl+S)">Save project</button>
-        <button type="button" class="btn small" id="openProj">Open project…</button>
+      <div class="project filebar">
         <span class="proj-menu-wrap">
-          <button type="button" class="btn small" id="projMenuBtn" aria-haspopup="true" aria-expanded="false" title="Switch to a recent project or one in your projects folder">Projects ▾</button>
-          <div class="proj-menu" id="projMenu" hidden><div id="projMenuList"></div></div>
+          <button type="button" class="btn small" id="projMenuBtn" aria-haspopup="true" aria-expanded="false" title="Open, save, recent projects and export">File ▾</button>
+          <div class="proj-menu file-menu" id="projMenu" role="menu" hidden>
+            <button type="button" class="fm-item" id="fmSong" role="menuitem"><span>🎵 Open a song…</span></button>
+            <button type="button" class="fm-item" id="openProj" role="menuitem"><span>📂 Open project…</span><kbd>Ctrl+O</kbd></button>
+            <div id="projMenuList"></div>
+            <hr>
+            <button type="button" class="fm-item" id="fmSave" role="menuitem"><span>💾 Save project</span><kbd>Ctrl+S</kbd></button>
+            <button type="button" class="fm-item" id="fmSaveAs" role="menuitem"><span>Save project as…</span><kbd>Ctrl+Shift+S</kbd></button>
+            <label class="fm-item fm-check" title="Saves the project by itself a moment after every change"><span><input type="checkbox" id="autoSave"> Auto-save</span></label>
+            <hr>
+            <div class="pm-head">Export</div>
+            <button type="button" class="fm-item" id="fmExport" role="menuitem"><span>⤓ Export to xLights (.xsq)…</span><kbd>Ctrl+E</kbd></button>
+            <button type="button" class="fm-item" id="fmTiming" role="menuitem"><span>Timing tracks (.xtiming)</span></button>
+            <button type="button" class="fm-item" id="fmJson" role="menuitem"><span>Song analysis (.json)</span></button>
+          </div>
         </span>
-        <label class="chk small" title="Saves the project by itself a moment after every change"><input type="checkbox" id="autoSave"> Auto-save</label>
+        <button type="button" class="btn small" id="saveProj" title="Save the project (Ctrl+S); Shift+click to save as">💾 Save</button>
+        <button type="button" class="btn small primary" id="exportBtn" title="Export the sequence for xLights (Ctrl+E)">⤓ Export to xLights</button>
+        <span class="proj-title" id="projTitle" title="This project"></span>
         <span id="projStatus" class="muted small"></span>
       </div>
       <nav class="tabs" role="tablist">
@@ -189,23 +202,6 @@
         <p id="showStatus" class="status" aria-live="polite"></p>
       </div>
 
-      <div class="panel save-bar" id="xsqPanel" hidden>
-        <div class="save-bar-row">
-          <div class="save-bar-title">
-            <h2>💾 Save the sequence for xLights</h2>
-            <span class="muted small">An .xsq with your effects plus Beats, Bars, Song Parts and Lyrics timing tracks. Open it in xLights and render as usual.</span>
-          </div>
-          <label class="save-path" title="If the path is not exact, xLights still finds a song with this file name in your show folder, its subfolders, or your media folders.">Song file, as xLights should find it
-            <input type="text" id="mediaPath" spellcheck="false" placeholder="C:\xLights\MP3\song.mp3">
-          </label>
-          <div class="btnrow tight save-bar-btns">
-            <button type="button" class="btn primary" id="saveXsq">Save into show folder</button>
-            <button type="button" class="btn" id="downloadXsq">Download .xsq</button>
-          </div>
-        </div>
-        <p id="xsqStatus" class="status"></p>
-      </div>
-
       <div class="seq-split">
       <div class="seq-left">
       <div class="panel" id="previewPanel" hidden>
@@ -215,6 +211,7 @@
             <label class="chk"><input type="checkbox" id="pvPhoto" checked> House photo</label>
             <label class="chk"><input type="checkbox" id="pvUnlit" checked> Show unlit bulbs</label>
             <button type="button" class="btn small" id="bgAdjustBtn">Line up photo…</button>
+            <button type="button" class="btn small" id="pvPopOut" title="Show the preview in its own window (for a second screen)">⧉ Pop out</button>
           </div>
         </div>
         <div class="bg-adjust" id="bgAdjust" hidden>
@@ -401,6 +398,27 @@
         <button type="button" class="btn small" id="mixReset">Everything back to normal</button>
       </div>
       <button type="submit" class="btn primary">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="exportDlg" class="picker leave-dlg export-dlg">
+  <form method="dialog" class="picker-inner">
+    <div class="picker-head"><h2>⤓ Export to xLights</h2><span class="muted small">Writes an xLights sequence (.xsq): your effects, plus Beats, Bars, Song Parts and Lyrics timing tracks. Open it in xLights and render as usual.</span></div>
+    <div class="recolour-body" id="xsqPanel">
+      <p class="status error" id="exportNoShow" hidden>Open your xLights show first (<b>2. Make a sequence → Your xLights show</b>), so the sequence uses your props.</p>
+      <label class="save-path" title="If the path is not exact, xLights still finds a song with this file name in your show folder, its subfolders, or your media folders.">Song file, as xLights should find it
+        <input type="text" id="mediaPath" spellcheck="false" placeholder="C:\xLights\MP3\song.mp3">
+      </label>
+      <p class="muted small" id="exportWhere"></p>
+      <p id="xsqStatus" class="status"></p>
+    </div>
+    <div class="picker-foot">
+      <button type="button" class="btn" id="exportClose">Close</button>
+      <div class="btnrow tight">
+        <button type="button" class="btn" id="downloadXsq">Download .xsq</button>
+        <button type="button" class="btn primary" id="saveXsq">Save into show folder</button>
+      </div>
     </div>
   </form>
 </dialog>

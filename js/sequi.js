@@ -3,7 +3,9 @@
 // "Make a sequence" tab: load the show, plan what lights up when, watch it
 // in the preview, save the .xsq.
 (() => {
-    const $ = id => document.getElementById(id);
+    // Elements of the preview can live in the pop-out window, so look there too.
+    const $ = id => document.getElementById(id) || (popWin && !popWin.closed ? popWin.document.getElementById(id) : null);
+    let popWin = null;
     const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
     const S = {
@@ -45,7 +47,6 @@
             $('previewPanel').hidden = false;
             $('gridPanel').hidden = false;
             $('planPanel').hidden = false;
-            $('xsqPanel').hidden = false;
             $('saveXsq').hidden = !show.folder;
             await setupViewer();
             loadPlan();
@@ -246,7 +247,12 @@
     function sizeViewer() {
         if (!S.show || !S.view) return;
         const wrap = canvas.parentElement;
-        const w = wrap.clientWidth || 800;
+        let w = wrap.clientWidth || 800;
+        // in its own window: as big as fits without scrolling
+        if (popWin && !popWin.closed && S.win) {
+            const room = popWin.innerHeight - (popWin.document.getElementById('previewPanel').offsetHeight - canvas.offsetHeight) - 24;
+            if (room > 120) w = Math.min(w, Math.floor(room * S.win.w / S.win.h));
+        }
         if (w === S.viewW) return;
         S.viewW = w;
         const win = S.win || { x: 0, y: 0, w: S.show.previewW, h: S.show.previewH };
@@ -806,10 +812,78 @@
         }
     });
 
+    // ---------- pop the preview out into its own window ----------
+    //
+    // The whole preview panel (house, strip, transport) moves into the new window
+    // and keeps working; closing that window brings it back.
+
+    let popPlaceholder = null;
+    function popOut() {
+        if (popWin && !popWin.closed) { popWin.focus(); return; }
+        const panel = $('previewPanel');
+        const r = panel.getBoundingClientRect();
+        const w = window.open('', 'xlweb-preview', `width=${Math.max(900, Math.round(r.width * 1.4))},height=${Math.max(560, Math.round(r.height * 1.3))}`);
+        if (!w) { setShowStatus('Your browser blocked the new window. Allow pop-ups for this site, then press ⧉ Pop out again.', true); return; }
+        const theme = document.documentElement.dataset.theme;
+        w.document.open();
+        w.document.write(`<!doctype html><html${theme ? ` data-theme="${theme}"` : ''}><head><meta charset="utf-8"><title>Preview – Lights Auto Sequencer</title><link rel="stylesheet" href="${new URL('css/style.css', location.href)}"></head><body class="popout-body"></body></html>`);
+        w.document.close();
+        popPlaceholder = document.createElement('div');
+        popPlaceholder.className = 'panel popped-note';
+        popPlaceholder.innerHTML = '<span>⧉ The preview is in its own window.</span> <button type="button" class="btn small">Bring it back</button>';
+        popPlaceholder.querySelector('button').addEventListener('click', () => popWin && popWin.close());
+        panel.before(popPlaceholder);
+        const go = () => {
+            if (popWin === w) return;
+            w.document.body.appendChild(w.document.adoptNode(panel));
+            popWin = w;
+            $('pvPopOut').textContent = '⧉ Bring back';
+            $('pvPopOut').title = 'Put the preview back in the main window';
+            // drags and keys in the new window reach the same handlers
+            for (const t of ['mousemove', 'mouseup']) w.addEventListener(t, e => window.dispatchEvent(new MouseEvent(t, e)));
+            w.addEventListener('keydown', e => {
+                if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+                const copy = new KeyboardEvent('keydown', e);
+                document.dispatchEvent(copy);
+                if (copy.defaultPrevented || e.code === 'Space') e.preventDefault();
+            });
+            new w.ResizeObserver(() => { S.viewW = 0; sizeViewer(); }).observe(canvas.parentElement);
+            w.addEventListener('pagehide', bringBack);
+            S.viewW = 0; sizeViewer(); S.dirty = true;
+            requestAnimationFrame(loop);
+            if (S.updatePvH) S.updatePvH();
+        };
+        // the stylesheet first, so the panel sizes itself properly
+        const link = w.document.querySelector('link');
+        if (link && !link.sheet) link.addEventListener('load', go, { once: true }); else go();
+        setTimeout(() => { if (!popWin) go(); }, 800);
+    }
+    function bringBack() {
+        if (!popPlaceholder) return;
+        const panel = (popWin && popWin.document.getElementById('previewPanel')) || null;
+        if (panel) popPlaceholder.replaceWith(document.adoptNode(panel));
+        else popPlaceholder.remove();
+        popPlaceholder = null;
+        popWin = null;
+        $('pvPopOut').textContent = '⧉ Pop out';
+        $('pvPopOut').title = 'Show the preview in its own window (for a second screen)';
+        S.viewW = 0; sizeViewer(); S.dirty = true;
+        requestAnimationFrame(loop);
+        if (S.updatePvH) S.updatePvH();
+    }
+    document.addEventListener('xl:theme', () => {
+        if (!popWin || popWin.closed) return;
+        const t = document.documentElement.dataset.theme;
+        if (t) popWin.document.documentElement.dataset.theme = t; else delete popWin.document.documentElement.dataset.theme;
+    });
+    $('pvPopOut').addEventListener('click', () => { if (popWin && !popWin.closed) popWin.close(); else popOut(); });
+    window.addEventListener('pagehide', () => { if (popWin && !popWin.closed) popWin.close(); });
+
     let frameTimes = [];
     function loop() {
-        requestAnimationFrame(loop);
-        if (!S.tabVisible || !S.show || !S.view) return;
+        // the pop-out window keeps drawing when the main window is hidden behind it
+        (popWin && !popWin.closed ? popWin : window).requestAnimationFrame(loop);
+        if ((!S.tabVisible && !popWin) || !S.show || !S.view) return;
         const song = XLWeb.song();
         if (!song) return;
         const t = XLWeb.time();
@@ -2322,6 +2396,20 @@
         return Sequencer.toXsq(gen, song, S.show, { song: song.fileName, mediaFile: $('mediaPath').value.trim(), version: ver });
     }
 
+    // ---------- the Export dialog ----------
+    function openExport() {
+        const noShow = !S.show;
+        $('exportNoShow').hidden = !noShow;
+        $('saveXsq').disabled = noShow || !S.show.folder;
+        $('downloadXsq').disabled = noShow;
+        $('saveXsq').title = noShow ? 'Open your show first' : !S.show.folder ? 'Your show was opened from files, not a folder: use Download' : '';
+        const song = XLWeb.song();
+        $('exportWhere').textContent = noShow ? '' : S.show.folder ? `Saves ${song ? song.fileName : 'the song'}.xsq into "${S.show.folderName}".` : 'Download it, then move it into your show folder.';
+        if (!$('xsqStatus').dataset.keep) $('xsqStatus').textContent = '';
+        $('exportDlg').showModal();
+    }
+    $('exportClose').addEventListener('click', () => $('exportDlg').close());
+
     $('downloadXsq').addEventListener('click', () => {
         const xml = buildXsq();
         if (!xml) return;
@@ -2374,6 +2462,7 @@
         getBgAdj: () => S.bgAdj ? { ...S.bgAdj } : null,
         setBgAdj: a => { if (!a) return; S.bgAdj = { ...BG_DEFAULT, ...a }; if (S.show) { saveBgAdj(); syncBgInputs(); if (!S.bgAdjusting) updateWindow(); S.dirty = true; } else S.pendingBg = S.bgAdj; },
         setMediaPath: v => { if (v) $('mediaPath').value = v; },
+        openExport,
         loadShowFromUrl: async (base) => useShow(async () => {
         const rgb = await (await fetch(base + 'xlights_rgbeffects.xml')).text();
         const show = Show.parse(rgb, '');
