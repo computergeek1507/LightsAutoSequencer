@@ -139,7 +139,7 @@
         models.forEach((m, mi) => {
             if (!m.mh) return;
             const k = pm.indexOf(mi);
-            if (k >= 0) S.view.heads.push({ g: m.offset, x: px[k], y: py[k] });
+            if (k >= 0) S.view.heads.push({ g: m.offset, x: px[k], y: py[k], scale: Math.max(parseFloat(m.attrs.ScaleX) || 0, parseFloat(m.attrs.ScaleY) || 0) || 1 });
         });
         await loadPropPictures(show);
         S.modelGroups = null;
@@ -468,7 +468,59 @@
         g.drawImage(V.light, 0, 0, W, H);
         drawBeams(g);
         g.globalCompositeOperation = 'source-over';
+        drawHeads(g);
         drawOverlays(g);
+    }
+
+    // The fixtures themselves, drawn like xLights does: base, yoke and head,
+    // turned the way the beam points, the lens glowing in its colour. Never
+    // smaller than easy-to-see; grey when nothing drives it.
+    function headAim(s) {
+        if (!s) return { a: 0, yoke: 1 };
+        const pan = s.pan * Math.PI / 180, tilt = s.tilt * Math.PI / 180;
+        return { a: Math.atan2(Math.sin(pan) * Math.sin(tilt), Math.cos(tilt)), yoke: Math.max(0.35, Math.abs(Math.cos(pan))) };
+    }
+    function drawHeads(g) {
+        const V = S.view, win = S.win;
+        if (!V.heads || !V.heads.length) return;
+        const st = Effects.movingHeadState();
+        const k = V.W / win.w;
+        const dpr = V.W / canvas.clientWidth;
+        for (const h of V.heads) {
+            const s = st[h.g];
+            const size = Math.max(34 * dpr, 60 * h.scale * k);      // fixture height on the canvas
+            const x = (h.x - win.x) * k, y = (h.y - win.y) * k;
+            const lit = s ? Math.max(s.r, s.g, s.b) / 255 : 0;
+            const { a, yoke } = headAim(s);
+            g.save();
+            g.translate(x, y + size * 0.35);
+            g.lineJoin = 'round';
+            g.lineWidth = Math.max(1, size * 0.04);
+            g.strokeStyle = 'rgba(0,0,0,.65)';
+            // base
+            g.fillStyle = '#8a8f99';
+            g.beginPath(); g.roundRect(-size * 0.42, size * 0.18, size * 0.84, size * 0.22, size * 0.05); g.fill(); g.stroke();
+            // yoke: narrower as the head pans away from us
+            const yw = size * 0.36 * yoke;
+            g.fillStyle = '#9da3ad';
+            g.beginPath();
+            g.moveTo(-yw, size * 0.18); g.lineTo(-yw, -size * 0.32); g.lineTo(-yw + size * 0.1, -size * 0.32); g.lineTo(-yw + size * 0.1, size * 0.08);
+            g.lineTo(yw - size * 0.1, size * 0.08); g.lineTo(yw - size * 0.1, -size * 0.32); g.lineTo(yw, -size * 0.32); g.lineTo(yw, size * 0.18);
+            g.closePath(); g.fill(); g.stroke();
+            // head, turned toward the beam
+            g.translate(0, -size * 0.22);
+            g.rotate(a);
+            g.fillStyle = '#b4bac4';
+            g.beginPath(); g.roundRect(-size * 0.2, -size * 0.3, size * 0.4, size * 0.42, size * 0.12); g.fill(); g.stroke();
+            // lens
+            g.beginPath(); g.ellipse(0, -size * 0.3, size * 0.16, size * 0.07, 0, 0, Math.PI * 2);
+            if (lit > 0.03) {
+                g.fillStyle = `rgb(${s.r | 0},${s.g | 0},${s.b | 0})`;
+                g.shadowColor = g.fillStyle; g.shadowBlur = size * 0.5;
+            } else g.fillStyle = '#2b2f36';
+            g.fill(); g.shadowBlur = 0; g.stroke();
+            g.restore();
+        }
     }
 
     // Moving heads: a beam from each head, aimed by pan (left/right) and tilt
@@ -487,7 +539,9 @@
             if (a < 0.03) continue;
             const pan = s.pan * Math.PI / 180, tilt = s.tilt * Math.PI / 180;
             const dx = Math.sin(pan) * Math.sin(tilt), dy = -Math.cos(tilt);
-            const x0 = (h.x - win.x) * k, y0 = (h.y - win.y) * k;
+            // from the lens of the fixture drawn by drawHeads
+            const size = Math.max(34 * (V.W / canvas.clientWidth), 60 * h.scale * k), ang = Math.atan2(dx, -dy);
+            const x0 = (h.x - win.x) * k + Math.sin(ang) * size * 0.3, y0 = (h.y - win.y) * k + size * 0.13 - Math.cos(ang) * size * 0.3;
             const x1 = x0 + dx * L, y1 = y0 + dy * L;
             const nx = -dy, ny = dx, wEnd = L * 0.09;
             const grad = g.createLinearGradient(x0, y0, x1, y1);
