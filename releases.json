@@ -1,5 +1,17 @@
 [
   {
+    "version": "2026.10.04.2",
+    "date": "2026-10-04",
+    "title": "Older xLights versions",
+    "items": [
+      ["new", "The page lists which xLights versions work: show folders from xLights 2021 or newer; saved sequences open in xLights 2023 or newer; moving-head effects need xLights 2024.10 or newer."],
+      ["new", "Export option for xLights older than 2024.10: leave out the moving-head effects."],
+      ["new", "If something goes wrong, a note says so, with Copy details to paste into Discord #bugs."],
+      ["better", "The show line names your layout's xLights version, and any props that couldn't be read."],
+      ["fixed", "One prop that can't be read (or an odd submodel or face) no longer stops the whole show from loading; very old layouts with groups in the model list load too."]
+    ]
+  },
+  {
     "version": "2026.10.04",
     "date": "2026-10-04",
     "title": "Moving heads, a File menu and a pop-out preview",

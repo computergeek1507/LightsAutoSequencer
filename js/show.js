@@ -138,26 +138,37 @@ const Show = (() => {
             groups: new Map(),
             controllers: [],
             nodeCount: 0,
+            // props that couldn't be read (left out, named in the status line)
+            skipped: [],
+            xlightsVersion: (doc.querySelector('settings > xlightsVersion') || {}).getAttribute ? doc.querySelector('settings > xlightsVersion').getAttribute('value') : '',
         };
+        // one odd part of a prop (a submodel, a face) never stops the rest
+        const safe = (fn, fallback) => { try { return fn(); } catch (e) { console.warn(e); return fallback; } };
 
+        const addGroup = el => {
+            const name = el.getAttribute('name');
+            if (!name) return;
+            const members = (el.getAttribute('models') || '').split(',').map(s => s.trim()).filter(Boolean);
+            show.groups.set(name, { name, members });
+        };
         for (const el of doc.querySelectorAll('models > model')) {
             const a = {};
             for (const at of el.attributes) a[at.name] = at.value;
+            if (!a.name) continue;
+            // very old layouts kept model groups in the list of models
+            if (a.DisplayAs === 'ModelGroup') { addGroup(el); continue; }
             let m;
-            try { m = buildModel(a); } catch (e) { console.warn('model', a.name, e); continue; }
+            try { m = buildModel(a); } catch (e) { console.warn('model', a.name, e); show.skipped.push(a.name); continue; }
             if (!m) continue;
-            m.submodels = [...el.querySelectorAll(':scope > subModel')].map(s => subModel(s, m)).filter(Boolean);
+            if (!m.nodes || !m.nodes.length) { show.skipped.push(a.name); continue; }
+            m.submodels = safe(() => [...el.querySelectorAll(':scope > subModel')].map(s => safe(() => subModel(s, m), null)).filter(Boolean), []);
             // every submodel xLights knows, including ones the preview can't draw
             m.subNames = new Set([...el.querySelectorAll(':scope > subModel')].map(s => s.getAttribute('name')).filter(Boolean));
-            m.faces = [...el.querySelectorAll(':scope > faceInfo')].map(f => faceInfo(f, m)).filter(Boolean);
+            m.faces = safe(() => [...el.querySelectorAll(':scope > faceInfo')].map(f => safe(() => faceInfo(f, m), null)).filter(Boolean), []);
             show.models.set(m.name, m);
             show.nodeCount += m.nodes.length;
         }
-        for (const el of doc.querySelectorAll('modelGroups > modelGroup')) {
-            const name = el.getAttribute('name');
-            const members = (el.getAttribute('models') || '').split(',').map(s => s.trim()).filter(Boolean);
-            show.groups.set(name, { name, members });
-        }
+        for (const el of doc.querySelectorAll('modelGroups > modelGroup')) addGroup(el);
         if (netText) {
             try {
                 const nd = new DOMParser().parseFromString(netText, 'application/xml');

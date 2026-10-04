@@ -7,6 +7,10 @@ Everything runs on your own computer: the song and your show folder are never up
 **New to it?** Read [How to use](https://socman1984-hub.github.io/LightsAutoSequencer/tutorial.html)
 (`tutorial.html`), or press **Show me around** in the app for a guided tour.
 
+**xLights versions:** show folders from xLights 2021 or newer (tested with layouts saved by
+2021–2026 versions). Saved sequences open in xLights 2023 or newer; the Moving Head effect
+needs 2024.10 or newer (the Export dialog can leave it out for older versions).
+
 **Ideas, questions, bugs?** Join the [Discord](https://discord.gg/xjgWweqCEs): #suggestions, #bugs, #help, #show-off.
 
 Two tabs:

@@ -376,6 +376,8 @@
   DMX fixtures show as single dots in the preview (the saved sequence is fine).
   Ideas start from one person's sequencing style; <b>Feeling</b>, <b>Prop mix</b> and <b>Prop types</b> steer them.
   New here? <a href="tutorial.html" target="_blank" rel="noopener">Read the guide</a>.</p>
+  <p><b>xLights versions:</b> show folders from xLights 2021 or newer (tested with layouts saved by 2021 to 2026 versions). Saved sequences open in xLights 2023 or newer;
+  moving-head effects need xLights 2024.10 or newer (older versions skip them).</p>
   <p>An independent tool for <a href="https://xlights.org" target="_blank" rel="noopener">xLights</a>, not made by the xLights project.
   Free and open source (GPLv3): <a href="https://github.com/socman1984-hub/LightsAutoSequencer" target="_blank" rel="noopener">source and issues on GitHub</a>.</p>
   <p><span id="footUpdated"></span> · <a href="#" id="footWhatsNew">What's new</a></p>
@@ -447,6 +449,7 @@
       <label class="save-path" title="If the path is not exact, xLights still finds a song with this file name in your show folder, its subfolders, or your media folders.">Song file, as xLights should find it
         <input type="text" id="mediaPath" spellcheck="false" placeholder="C:\xLights\MP3\song.mp3">
       </label>
+      <label class="chk small" title="Moving Head effects were added in xLights 2024.10; older versions skip them anyway"><input type="checkbox" id="exportOld"> My xLights is older than 2024.10 (leave out moving-head effects)</label>
       <p class="muted small" id="exportWhere"></p>
       <p id="xsqStatus" class="status"></p>
     </div>

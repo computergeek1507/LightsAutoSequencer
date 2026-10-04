@@ -2,6 +2,16 @@
 
 Release notes for Lights Auto Sequencer, newest first. The same list is in the app under **✨ What's new**.
 
+## 2026.10.04.2 — Older xLights versions
+
+_2026-10-04_
+
+- **New:** The page lists which xLights versions work: show folders from xLights 2021 or newer; saved sequences open in xLights 2023 or newer; moving-head effects need xLights 2024.10 or newer.
+- **New:** Export option for xLights older than 2024.10: leave out the moving-head effects.
+- **New:** If something goes wrong, a note says so, with Copy details to paste into Discord #bugs.
+- **Better:** The show line names your layout's xLights version, and any props that couldn't be read.
+- **Fixed:** One prop that can't be read (or an odd submodel or face) no longer stops the whole show from loading; very old layouts with groups in the model list load too.
+
 ## 2026.10.04 — Moving heads, a File menu and a pop-out preview
 
 _2026-10-04_

@@ -1625,6 +1625,22 @@
         b.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+    // Anything unexpected: say so, with the details ready to paste into Discord #bugs.
+    const reported = new Set();
+    function reportError(msg, stack) {
+        const text = String(msg || 'Unknown error');
+        if (reported.has(text) || /ResizeObserver loop/.test(text)) return;
+        reported.add(text);
+        const details = `${text}\n${stack || ''}\nPage: ${location.href}\nBrowser: ${navigator.userAgent}`;
+        banner(`Something went wrong: <b>${esc(text.slice(0, 200))}</b>. The page may still work; if it doesn't, reload it. Please tell us in Discord <b>#bugs</b> (copy the details and paste them there), so it can be fixed.`, [
+            ['Copy details', async () => { try { await navigator.clipboard.writeText(details); } catch (e) { /* no clipboard */ } }, true],
+            ['Discord', () => window.open('https://discord.gg/xjgWweqCEs', '_blank', 'noopener')],
+            ['Dismiss', () => banner(null)],
+        ], 'error');
+    }
+    window.addEventListener('error', e => reportError(e.message, e.error && e.error.stack));
+    window.addEventListener('unhandledrejection', e => { const r = e.reason; if (r && r.name === 'AbortError') return; reportError(r && r.message || r, r && r.stack); });
+
     async function openProjectFile(file, handle = null) {
         pendingProjectHandle = handle;
         try {

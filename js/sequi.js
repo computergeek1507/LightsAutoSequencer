@@ -39,7 +39,8 @@
             setTimeout(() => document.dispatchEvent(new CustomEvent('xl:show')), 0);
             loadPropTypes();
             const faces = [...show.models.values()].filter(m => m.faces.length).length;
-            setShowStatus(`Show: "${show.folderName}" · ${show.models.size} models, ${show.groups.size} groups, ${show.nodeCount.toLocaleString()} lights${faces ? `, ${faces} singing face${faces > 1 ? 's' : ''}` : ''}${show.backgroundUrl ? '' : ' · no house photo found'}`);
+            const skipped = show.skipped && show.skipped.length ? ` · ${show.skipped.length} prop${show.skipped.length > 1 ? 's' : ''} couldn't be read and ${show.skipped.length > 1 ? 'are' : 'is'} left out (${show.skipped.slice(0, 3).join(', ')}${show.skipped.length > 3 ? ', …' : ''})` : '';
+            setShowStatus(`Show: "${show.folderName}"${show.xlightsVersion ? ` (xLights ${show.xlightsVersion})` : ''} · ${show.models.size} models, ${show.groups.size} groups, ${show.nodeCount.toLocaleString()} lights${faces ? `, ${faces} singing face${faces > 1 ? 's' : ''}` : ''}${show.backgroundUrl ? '' : ' · no house photo found'}${skipped}`);
             // once loaded the panel is one line; the folder can still be changed
             $('showPanel').classList.add('loaded');
             $('pickShow').textContent = 'Choose a different folder…';
@@ -990,6 +991,12 @@
     function loop() {
         // the pop-out window keeps drawing when the main window is hidden behind it
         (popWin && !popWin.closed ? popWin : window).requestAnimationFrame(loop);
+        // a drawing error is reported once; the preview keeps going
+        try { frame(); } catch (e) {
+            if (!S.drawError) { S.drawError = true; console.error(e); window.dispatchEvent(new ErrorEvent('error', { message: 'Preview: ' + (e && e.message || e), error: e })); }
+        }
+    }
+    function frame() {
         if ((!S.tabVisible && !popWin) || !S.show || !S.view) return;
         const song = XLWeb.song();
         if (!song) return;
@@ -2593,10 +2600,20 @@
         const song = XLWeb.song();
         if (!song || !S.show || !S.plan) return null;
         // always the full plan, whatever is soloed or muted in the preview
-        const gen = Sequencer.generate(S.plan, song, S.show);
+        const gen = Sequencer.generate(exportPlan(), song, S.show);
         if (!gen.count) { $('xsqStatus').textContent = 'The plan has no effects yet.'; return null; }
         const ver = '2025.09';
         return Sequencer.toXsq(gen, song, S.show, { song: song.fileName, mediaFile: $('mediaPath').value.trim(), version: ver });
+    }
+
+    // xLights before 2024.10 has no Moving Head effect: leave it out for them
+    function exportPlan() {
+        if (!$('exportOld') || !$('exportOld').checked) return S.plan;
+        const p = JSON.parse(JSON.stringify(S.plan));
+        const strip = c => { if (c) c.rows = c.rows.filter(r => r.effect !== 'moving'); };
+        strip(p.whole);
+        Object.values(p.sections || {}).forEach(strip);
+        return p;
     }
 
     // ---------- the Export dialog ----------
