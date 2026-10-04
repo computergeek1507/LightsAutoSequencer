@@ -157,6 +157,13 @@ Result on Dusty Bibles (xLights render, benchmark from the owner's sequences): d
 57% (target ≥ 45%), loudness r 0.48 (owner's 0.40-0.60), median below mean; xLights vs preview
 0.98. Dark time is still only 1% (owner's 5-10%).
 
+## From testers' files (open)
+
+- Layout scenery: picture objects (e.g. "Night Sky.png") and 3D house meshes (`.obj`) in
+  xLights' 3D layouts aren't drawn in the preview. Pictures would be easy (placed like the
+  photo); a mesh could be drawn as a flat silhouette from the front.
+- DMX fixtures (moving heads, floods) still show as one dot.
+
 ## Going public (putting it online for everyone)
 
 **Short answer: yes, and cheaply.** Everything runs in the visitor's own browser (analysis,
@@ -212,6 +219,11 @@ hosting account) is the owner's to do; I can prepare everything up to that point
 
 ## Done
 
+- **2026-10-03:** From a tester's packaged sequence (.xsqz, "Here comes Santa Claus Trap Remix
+  LAS Test", their 47-prop 3D layout): no missing props; layout lines up with their photo.
+  Added Image props in the preview (the picture, dimmed to its OffBrightness when off,
+  glowing in the light's colour when on; WhiteAsAlpha; found by path or by name in the show
+  folder). Saved sequences now say "Made with Lights Auto Sequencer".
 - **2026-10-03:** "Props cannot be found" reports: a plan (saved per song, or from a project)
   could name props of another layout. If the show loaded after the plan, those names went into
   the .xsq and xLights complained; if before, they were silently deleted. Now they're kept by

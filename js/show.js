@@ -55,6 +55,30 @@ const Show = (() => {
         try { return await (await dir.getFileHandle(name)).getFile(); } catch (e) { return null; }
     }
 
+    // A prop's picture: its path relative to the show folder (or the tail of an
+    // absolute path from another computer), else the same file name anywhere
+    // within three folders down.
+    async function pictureIn(dir, path) {
+        const parts = String(path || '').split(/[\\/]/).filter(Boolean);
+        if (!parts.length) return null;
+        for (let k = 0; k < parts.length; k++) {
+            try {
+                let d = dir;
+                for (const p of parts.slice(k, -1)) d = await d.getDirectoryHandle(p);
+                return await (await d.getFileHandle(parts[parts.length - 1])).getFile();
+            } catch (e) { /* try a shorter tail */ }
+        }
+        const want = parts[parts.length - 1].toLowerCase();
+        const find = async (d, depth) => {
+            try {
+                for await (const [n, h] of d.entries()) if (h.kind === 'file' && n.toLowerCase() === want) return h.getFile();
+                if (depth > 0) for await (const [n, h] of d.entries()) if (h.kind === 'directory' && !/^backup/i.test(n)) { const f = await find(h, depth - 1); if (f) return f; }
+            } catch (e) { /* unreadable */ }
+            return null;
+        };
+        return find(dir, 3);
+    }
+
     async function loadFromFolder(dir) {
         const rgb = await fileIn(dir, 'xlights_rgbeffects.xml');
         if (!rgb) throw new Error('This folder has no xlights_rgbeffects.xml. Pick the folder xLights uses as its show folder.');
@@ -65,6 +89,10 @@ const Show = (() => {
         if (show.backgroundName) {
             const img = await fileIn(dir, show.backgroundName);
             if (img) show.backgroundUrl = URL.createObjectURL(img);
+        }
+        for (const m of show.models.values()) if (m.image && m.image.path) {
+            const f = await pictureIn(dir, m.image.path);
+            if (f) m.image.url = URL.createObjectURL(f);
         }
         return show;
     }
@@ -78,6 +106,10 @@ const Show = (() => {
         show.folderName = 'selected files';
         const img = show.backgroundName && byName(show.backgroundName.toLowerCase());
         if (img) show.backgroundUrl = URL.createObjectURL(img);
+        for (const m of show.models.values()) if (m.image && m.image.path) {
+            const f = byName(m.image.path.split(/[\\/]/).pop().toLowerCase());
+            if (f) m.image.url = URL.createObjectURL(f);
+        }
         return show;
     }
 
@@ -271,6 +303,7 @@ const Show = (() => {
             case 'Sphere': g = sphereGeom(a); break;
             case 'MultiPoint': g = multiPointGeom(a); break;
             case 'Channel Block': g = channelBlockGeom(a); break;
+            case 'Image': g = imageGeom(a); break;
             default:
                 // Vert/Horiz Matrix and "Tree 360" are older names for the same models
                 if (/^(Vert|Horiz) Matrix$/.test(type)) g = matrixGeom({ ...a, Vertical: type.startsWith('Vert') ? 'true' : 'false' });
@@ -284,6 +317,7 @@ const Show = (() => {
             name: a.name, type, attrs: a,
             pixelSize: Math.max(1, num(a.PixelSize, 2)),
             nodes: g.nodes, bufW: Math.max(1, g.bufW), bufH: Math.max(1, g.bufH),
+            image: g.image || null,
         };
     }
 
@@ -726,6 +760,18 @@ const Show = (() => {
         for (let i = 0; i < n; i++) nodes.push({ bx: i, by: 0, pts: [{ x: i + 0.5, y: 0 }] });
         twoPoint(a, nodes.flatMap(p => p.pts), n);
         return { nodes, bufW: n, bufH: 1 };
+    }
+
+    // ImageModel: one light that shows a picture, drawn in a unit square under
+    // the model's box (dimmed to OffBrightness % when off, glowing in the light's
+    // colour when on).
+    function imageGeom(a) {
+        const c = boxed(a, [{ x: 0, y: 0 }]);
+        const corners = boxed(a, [{ x: -0.5, y: -0.5 }, { x: 0.5, y: -0.5 }, { x: 0.5, y: 0.5 }, { x: -0.5, y: 0.5 }]);
+        return {
+            nodes: [{ bx: 0, by: 0, pts: c }], bufW: 1, bufH: 1,
+            image: { path: a.Image || '', off: Math.max(0, Math.min(100, int(a.OffBrightness, 80))), whiteAsAlpha: /^true$/i.test(a.WhiteAsAlpha || ''), corners },
+        };
     }
 
     function pointGeom(a) {

@@ -131,6 +131,7 @@
             });
         });
         S.view = { px, py, pn, ps, pm, models, total: offset };
+        await loadPropPictures(show);
         S.modelGroups = null;
         S.hlCache = new Map();
         loadBgAdj();
@@ -152,6 +153,10 @@
                 const x = V.px[k], y = V.py[k];
                 if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
             }
+            for (const p of S.pictures || []) for (const c of p.model.image.corners) {
+                const x = c.x + (sh.center0 ? sh.previewW / 2 : 0), y = sh.previewH - c.y;
+                if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+            }
             const m = 0.03 * Math.max(x1 - x0, y1 - y0, 1);
             x0 -= m; x1 += m; y0 -= m; y1 += m;
             if (bgImg) {
@@ -166,6 +171,74 @@
         S.win = win;
         S.viewW = 0;
         sizeViewer();
+    }
+
+    // Image props: the picture, plus a mask of how bright each pixel is, for
+    // tinting it with the light's colour.
+    async function loadPropPictures(show) {
+        S.pictures = [];
+        for (const m of show.models.values()) {
+            const im = m.image;
+            if (!im || !im.url) continue;
+            const img = new Image();
+            img.src = im.url;
+            await new Promise(r => { img.onload = r; img.onerror = r; });
+            if (!img.naturalWidth) continue;
+            const w = Math.min(512, img.naturalWidth), h = Math.max(1, Math.round(img.naturalHeight * w / img.naturalWidth));
+            const base = document.createElement('canvas'); base.width = w; base.height = h;
+            const bg = base.getContext('2d');
+            bg.drawImage(img, 0, 0, w, h);
+            const data = bg.getImageData(0, 0, w, h), d = data.data;
+            const mask = document.createElement('canvas'); mask.width = w; mask.height = h;
+            const md = mask.getContext('2d').createImageData(w, h), mm = md.data;
+            for (let i = 0; i < d.length; i += 4) {
+                if (im.whiteAsAlpha && d[i] === d[i + 1] && d[i] === d[i + 2]) d[i + 3] = d[i];
+                const l = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+                mm[i] = mm[i + 1] = mm[i + 2] = 255; mm[i + 3] = Math.min(d[i + 3], l);
+            }
+            bg.putImageData(data, 0, 0);
+            mask.getContext('2d').putImageData(md, 0, 0);
+            const tint = document.createElement('canvas'); tint.width = w; tint.height = h;
+            S.pictures.push({ model: m, base, mask, tint, off: im.off / 100 });
+        }
+    }
+
+    // Where a picture sits on the viewer canvas.
+    function pictureRect(p) {
+        const sh = S.show, win = S.win, k = S.view.W / win.w;
+        const xs = p.model.image.corners.map(c => c.x + (sh.center0 ? sh.previewW / 2 : 0));
+        const ys = p.model.image.corners.map(c => sh.previewH - c.y);
+        const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        return { x: (x0 - win.x) * k, y: (y0 - win.y) * k, w: (x1 - x0) * k, h: (y1 - y0) * k };
+    }
+
+    function drawPictures(g, colors) {
+        for (const p of S.pictures || []) {
+            const r = pictureRect(p);
+            if (r.w < 1 || r.h < 1) continue;
+            const gi = 3 * p.model.offset;
+            const R = colors ? colors[gi] : 0, G = colors ? colors[gi + 1] : 0, B = colors ? colors[gi + 2] : 0;
+            const lit = Math.max(R, G, B) / 255;
+            // dim when off, as xLights does (OffBrightness %)
+            g.save();
+            g.globalAlpha = 1;
+            g.filter = `brightness(${(p.off * 0.6 + (1 - p.off) * 0.6 * lit).toFixed(3)})`;
+            g.drawImage(p.base, r.x, r.y, r.w, r.h);
+            g.restore();
+            if (lit > 0.02) {
+                const t = p.tint.getContext('2d');
+                t.globalCompositeOperation = 'source-over';
+                t.clearRect(0, 0, p.tint.width, p.tint.height);
+                t.fillStyle = `rgb(${R | 0},${G | 0},${B | 0})`;
+                t.fillRect(0, 0, p.tint.width, p.tint.height);
+                t.globalCompositeOperation = 'destination-in';
+                t.drawImage(p.mask, 0, 0);
+                g.save();
+                g.globalCompositeOperation = 'lighter';
+                g.drawImage(p.tint, r.x, r.y, r.w, r.h);
+                g.restore();
+            }
+        }
     }
 
     function sizeViewer() {
@@ -344,6 +417,7 @@
         const g = canvas.getContext('2d');
         g.globalCompositeOperation = 'source-over';
         g.drawImage(backdrop(), 0, 0);
+        drawPictures(g, colors);
         if (!colors) return;
         const d = V.img.data, u32 = V.u32, touched = V.touched;
         for (let i = 0; i < V.nTouched; i++) u32[touched[i]] = 0;
@@ -2299,6 +2373,7 @@
         const show = Show.parse(rgb, '');
         show.folderName = 'test';
         show.backgroundUrl = base + show.backgroundName;
+        for (const m of show.models.values()) if (m.image && m.image.path && !/^[a-z]:|^[\\/]/i.test(m.image.path)) m.image.url = base + m.image.path.replace(/\\/g, '/');
         return show;
     }) };
 })();

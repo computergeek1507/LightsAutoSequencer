@@ -355,7 +355,7 @@ const Sequencer = (() => {
         L.push('<xsequence BaseChannel="0" ChanCtrlBasic="0" ChanCtrlColor="0" FixedPointTiming="1" ModelBlending="true">');
         L.push('  <head>');
         const head = [['version', meta.version || '2025.09'], ['author', ''], ['author-email', ''], ['author-website', ''],
-            ['song', meta.song || ''], ['artist', meta.artist || ''], ['album', ''], ['MusicURL', ''], ['comment', 'Made with the xLights web sequencer'],
+            ['song', meta.song || ''], ['artist', meta.artist || ''], ['album', ''], ['MusicURL', ''], ['comment', 'Made with Lights Auto Sequencer'],
             ['sequenceTiming', FRAME_MS + ' ms'], ['sequenceType', 'Media'], ['mediaFile', meta.mediaFile || ''],
             ['sequenceDuration', song.model.duration.toFixed(3)], ['imageDir', '']];
         for (const [k, v] of head) L.push(`    <${k}>${esc(v)}</${k}>`);
