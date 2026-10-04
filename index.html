@@ -25,11 +25,25 @@
     <span><b>New here?</b> A two-minute tour shows where everything is.</span>
     <span><button type="button" class="btn small primary" id="tourStart">Show me around</button> <a class="btn small" href="tutorial.html" target="_blank" rel="noopener">Read the guide</a> <button type="button" class="btn small" id="tourNo">No thanks</button></span>
   </div>
-  <div class="recent-start" id="recentStart" hidden></div>
   <section id="drop" class="drop">
+    <div class="drop-lights" aria-hidden="true"><svg class="wire" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><path d="M0,4 Q25,48 50,4 Q75,48 100,4" vector-effect="non-scaling-stroke"/></svg><i class="bulb r" style="left:1.92%;top:7.3px;animation-delay:0.00s"></i><i class="bulb g" style="left:5.77%;top:13.0px;animation-delay:0.37s"></i><i class="bulb y" style="left:9.62%;top:17.7px;animation-delay:0.74s"></i><i class="bulb b" style="left:13.46%;top:21.3px;animation-delay:1.11s"></i><i class="bulb w" style="left:17.31%;top:23.9px;animation-delay:1.48s"></i><i class="bulb r" style="left:21.15%;top:25.5px;animation-delay:1.85s"></i><i class="bulb g" style="left:25.00%;top:26.0px;animation-delay:2.22s"></i><i class="bulb y" style="left:28.85%;top:25.5px;animation-delay:2.59s"></i><i class="bulb b" style="left:32.69%;top:23.9px;animation-delay:0.36s"></i><i class="bulb w" style="left:36.54%;top:21.3px;animation-delay:0.73s"></i><i class="bulb r" style="left:40.38%;top:17.7px;animation-delay:1.10s"></i><i class="bulb g" style="left:44.23%;top:13.0px;animation-delay:1.47s"></i><i class="bulb y" style="left:48.08%;top:7.3px;animation-delay:1.84s"></i><i class="bulb b" style="left:51.92%;top:7.3px;animation-delay:2.21s"></i><i class="bulb w" style="left:55.77%;top:13.0px;animation-delay:2.58s"></i><i class="bulb r" style="left:59.62%;top:17.7px;animation-delay:0.35s"></i><i class="bulb g" style="left:63.46%;top:21.3px;animation-delay:0.72s"></i><i class="bulb y" style="left:67.31%;top:23.9px;animation-delay:1.09s"></i><i class="bulb b" style="left:71.15%;top:25.5px;animation-delay:1.46s"></i><i class="bulb w" style="left:75.00%;top:26.0px;animation-delay:1.83s"></i><i class="bulb r" style="left:78.85%;top:25.5px;animation-delay:2.20s"></i><i class="bulb g" style="left:82.69%;top:23.9px;animation-delay:2.57s"></i><i class="bulb y" style="left:86.54%;top:21.3px;animation-delay:0.34s"></i><i class="bulb b" style="left:90.38%;top:17.7px;animation-delay:0.71s"></i><i class="bulb w" style="left:94.23%;top:13.0px;animation-delay:1.08s"></i><i class="bulb r" style="left:98.08%;top:7.3px;animation-delay:1.45s"></i></div>
+    <div class="drop-main">
+      <p class="drop-title"><span class="t-full">Turn a song into a light show</span><span class="t-short">Another song?</span></p>
+      <p class="drop-sub">Drop an MP3 anywhere on this page, or</p>
+      <div class="drop-actions">
+        <button type="button" id="pick" class="btn primary big">🎵 Choose a song</button>
+        <button type="button" id="openProj0" class="btn big">📂 Open a saved project</button>
+      </div>
+      <div class="recent-start" id="recentStart" hidden></div>
+      <ol class="drop-steps">
+        <li><span>1</span><div><b>Song</b>Beats, parts and words found for you</div></li>
+        <li><span>2</span><div><b>Lights</b>Ideas for your props, played on your house</div></li>
+        <li><span>3</span><div><b>xLights</b>Save the sequence, render and enjoy</div></li>
+      </ol>
+      <p class="drop-hint">🔒 Everything runs in your browser: your song and your show are never uploaded.</p>
+    </div>
+    <div class="drop-over-msg" aria-hidden="true">Let go to load it ✨</div>
     <input type="file" id="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac" hidden>
-    <p class="drop-title">Drop an MP3 here</p>
-    <p class="drop-hint">or <button type="button" id="pick" class="link">choose a file</button>, or <button type="button" id="openProj0" class="link">open a saved project</button>. Everything runs in your browser, so the song is never uploaded.</p>
     <input type="file" id="projFile" accept=".json,application/json" hidden>
     <p id="status" class="status" aria-live="polite"></p>
   </section>
@@ -174,6 +188,23 @@
         <p id="showStatus" class="status" aria-live="polite"></p>
       </div>
 
+      <div class="panel save-bar" id="xsqPanel" hidden>
+        <div class="save-bar-row">
+          <div class="save-bar-title">
+            <h2>💾 Save the sequence for xLights</h2>
+            <span class="muted small">An .xsq with your effects plus Beats, Bars, Song Parts and Lyrics timing tracks. Open it in xLights and render as usual.</span>
+          </div>
+          <label class="save-path" title="If the path is not exact, xLights still finds a song with this file name in your show folder, its subfolders, or your media folders.">Song file, as xLights should find it
+            <input type="text" id="mediaPath" spellcheck="false" placeholder="C:\xLights\MP3\song.mp3">
+          </label>
+          <div class="btnrow tight save-bar-btns">
+            <button type="button" class="btn primary" id="saveXsq">Save into show folder</button>
+            <button type="button" class="btn" id="downloadXsq">Download .xsq</button>
+          </div>
+        </div>
+        <p id="xsqStatus" class="status"></p>
+      </div>
+
       <div class="seq-split">
       <div class="seq-left">
       <div class="panel" id="previewPanel" hidden>
@@ -302,21 +333,6 @@
       </div>
       </div>
 
-      <div class="panel" id="xsqPanel" hidden>
-        <h2>Save the sequence</h2>
-        <p class="panel-note">Writes an xLights sequence (.xsq) with your effects plus Beats, Bars, Song Parts and Lyrics timing tracks. Open it in xLights and render as usual.</p>
-        <div class="form">
-          <label class="wide">Song file, as xLights should find it
-            <input type="text" id="mediaPath" spellcheck="false" placeholder="C:\xLights\MP3\song.mp3">
-          </label>
-        </div>
-        <p class="panel-note small">If the path is not exact, xLights still finds a song with this file name in your show folder, its subfolders, or your media folders.</p>
-        <div class="btnrow">
-          <button type="button" class="btn primary" id="saveXsq">Save into show folder</button>
-          <button type="button" class="btn" id="downloadXsq">Download .xsq</button>
-        </div>
-        <p id="xsqStatus" class="status"></p>
-      </div>
     </div>
   </section>
 </main>

@@ -212,6 +212,10 @@ hosting account) is his to do; I can prepare everything up to that point.
 
 ## Done
 
+- **2026-10-03:** New start screen: twinkling string of lights, "Turn a song into a light
+  show", big *Choose a song* / *Open a saved project* buttons, recent projects, three steps,
+  a drop glow; shrinks to one line once a song is open. *Save the sequence for xLights* moved
+  to the top of *Make a sequence* as a highlighted bar.
 - **2026-10-03:** Plan controls grouped: *Ideas* (Suggest + For:, and a foldable *Idea
   settings* with Look / Props / How ideas are made, each option with a one-line
   explanation), *Change what's planned*, *View*. *View → Only the part that's playing*
