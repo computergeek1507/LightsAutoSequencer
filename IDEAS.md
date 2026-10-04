@@ -275,6 +275,10 @@ show); 7 the test hooks stay on purpose (harmless, used for testing); 8 not need
 
 ## Done
 
+- **2026-10-04:** Fixed: moving heads set to "No Controller" in xLights (common for DMX with an
+  absolute channel, like the owner's) were skipped by ideas and Randomize, though the Moving
+  heads box showed. Heads always count now; a part ticked in the box gets the heads even when
+  it has its own *Lights to use when randomizing* list.
 - **2026-10-04:** *Moving heads* box (only when the show has heads): the parts they join (ideas
   and Randomize only use heads there), *Apply to ticked parts* / *New moving-head ideas* that
   change only the head rows, fixture size and beam length for the preview (smaller default);

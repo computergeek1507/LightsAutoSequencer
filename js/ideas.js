@@ -153,7 +153,9 @@ const Ideas = (() => {
 
     // ---------- candidates ----------
 
-    const inUse = m => m.attrs.Controller !== 'No Controller' && !/^old|old_/i.test(m.name);
+    // "No Controller" usually means a parked prop; DMX moving heads are often set up
+    // with an absolute channel and no controller named, so they always count.
+    const inUse = m => (m.mh || m.attrs.Controller !== 'No Controller') && !/^old|old_/i.test(m.name);
 
     // One target per kind of prop: the broadest group if there is one
     // ("All Arches" rather than "Arches 1-3"), otherwise its models.
@@ -468,6 +470,9 @@ const Ideas = (() => {
         const usePool = !!(pool && pool.length);
         if (usePool) {
             order = pool.map(t => ({ key: 'target:' + t, targets: [t] }));
+            // a part ticked in the Moving heads box gets the heads even with its own list
+            const heads = mhParts && mhParts.includes(section.id) && candidates(show, excluded).get('movinghead');
+            if (heads && !pool.some(t => classify(show, t) === 'movinghead')) order.push({ key: 'class:movinghead', targets: heads.targets });
         } else {
             const kind = Sequencer.kindOf(section.name);
             const entries = mixEntries(show, excluded, mix).filter(e => !e.hiddenByDefault || level(mix, e.key, kind) !== 'normal');
