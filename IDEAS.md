@@ -275,6 +275,16 @@ show); 7 the test hooks stay on purpose (harmless, used for testing); 8 not need
 
 ## Done
 
+- **2026-10-04:** Older xLights versions. A tester said loading a show from xLights 2023
+  crashed. Could not reproduce: seven vendor layouts saved by xLights 2021–2025 and a
+  deliberately broken file all load, suggest and export. Made loading forgiving anyway (a prop,
+  submodel or face that can't be read is skipped and named in the status line; old layouts with
+  groups in the model list load), the preview keeps drawing after an error, and any unexpected
+  error shows a note with *Copy details* for Discord #bugs. Supported versions are listed in the
+  footer, guide and README; the Export dialog can leave out moving-head effects for xLights before
+  2024.10 (the effect was added in 2024.10; 2023 skips it). Still waiting on the tester's
+  `xlights_rgbeffects.xml` or copied error to find the real cause.
+
 - **2026-10-04:** ✨ What's new: release notes (`releases.json`, newest first, New / Better /
   Fixed) in a dialog from the header, a dot and a one-time note for returning visitors, and
   "Last updated …" (the newest commit on GitHub) in the dialog and footer. `CHANGELOG.md` is
