@@ -262,11 +262,17 @@
           <div class="btnrow tight">
             <button type="button" class="btn small" id="planUndo" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
             <button type="button" class="btn small" id="planRedo" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
+            <button type="button" class="btn small" id="layoutReset" hidden title="Put the boxes back in the usual order, all open">Reset layout</button>
+            <button type="button" class="btn small" id="layoutLock" aria-pressed="true" title="Unlock to move the boxes below around">🔒 Layout locked</button>
           </div>
         </div>
-        <p class="panel-note">Every part of the song has its own light rows: which lights, when (the whole time, on beats, drum hits or singing), the effect and its colours. Let <b>Ideas</b> fill them in, then change anything by hand.</p>
+        <div class="ctl-stack" id="ctlStack">
+        <section class="ctl-group wide" data-block="intro">
+          <div class="ctl-head"><h3>How this works</h3></div>
+          <p class="panel-note">Every part of the song has its own light rows: which lights, when (the whole time, on beats, drum hits or singing), the effect and its colours. Let <b>Ideas</b> fill them in, then change anything by hand.</p>
+        </section>
 
-        <section class="ctl-group">
+        <section class="ctl-group wide" data-block="ideas">
           <div class="ctl-head"><h3>Ideas</h3><span class="muted small">The app lights the parts for you. Rows you untick (🔒) are kept.</span></div>
           <div class="ctl-row">
             <button type="button" class="btn primary" id="suggestPlan">🎲 Suggest a plan</button>
@@ -308,15 +314,14 @@
           </details>
         </section>
 
-        <div class="ctl-pair">
-          <section class="ctl-group">
+          <section class="ctl-group" data-block="change">
             <div class="ctl-head"><h3>Change what's planned</h3></div>
             <div class="ctl-row">
               <button type="button" class="btn small" id="recolourBtn" title="Change only the colours of planned lights">🎨 Change colours…</button>
               <button type="button" class="btn small" id="wordsBtn" title="Show the sung words on the matrix in the parts you choose">📝 Words on the matrix…</button>
             </div>
           </section>
-          <section class="ctl-group">
+          <section class="ctl-group" data-block="view">
             <div class="ctl-head"><h3>View</h3></div>
             <div class="ctl-row">
               <select id="goSection" aria-label="Go to a section"></select>
@@ -496,6 +501,7 @@
 <script src="js/fit.js"></script>
 <script src="js/app.js"></script>
 <script src="js/sequi.js"></script>
+<script src="js/layout.js"></script>
 <script src="js/tour.js"></script>
 </body>
 </html>

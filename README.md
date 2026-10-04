@@ -166,6 +166,9 @@ Ctrl+Z undoes. Edits are kept per song (keyed by word position + word), survive
 - *Prop types…* tells ideas what a prop is when its name doesn't say. Without it, a group is
   judged by what most of its members are (so "Everything but starburst" is not a group of
   stars), and a model by its name, then its xLights type.
+- The control boxes above the plan fold with ▾ and, after *🔒 Layout locked* is clicked to
+  unlock, move by dragging the ⠿ grip or with ↑ ↓ (*Reset layout* restores them). Locked by
+  default; order and folds are remembered in the browser.
 - The 🎲 tick on a section card says whether *Another idea* changes that part (same as the
   *For:* menu). The tick at the start of a light row: untick it to keep that row (🔒) when
   randomizing; new ideas fill in around it.

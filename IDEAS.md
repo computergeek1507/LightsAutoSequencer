@@ -212,6 +212,9 @@ hosting account) is his to do; I can prepare everything up to that point.
 
 ## Done
 
+- **2026-10-03:** Plan control boxes can be folded (▾) and, once unlocked (*🔒 Layout
+  locked*, locked by default), dragged by a ⠿ grip or moved with ↑ ↓; *Reset layout*; all
+  remembered. Drag uses pointer events (works with mouse and touch).
 - **2026-10-03:** New start screen: twinkling string of lights, "Turn a song into a light
   show", big *Choose a song* / *Open a saved project* buttons, recent projects, three steps,
   a drop glow; shrinks to one line once a song is open. *Save the sequence for xLights* moved
