@@ -479,3 +479,7 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; backgro
 .chk.opt input { margin-top: 3px; }
 .ctl-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0 10px; }
 .only-now-note { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+
+/* Discord link */
+.btn.discord { background: #5865F2; border-color: #5865F2; color: #fff; text-decoration: none; }
+.btn.discord:hover { filter: brightness(1.08); }

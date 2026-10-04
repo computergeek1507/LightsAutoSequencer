@@ -7,6 +7,8 @@ Everything runs on your own computer: the song and your show folder are never up
 **New to it?** Read [How to use](https://socman1984-hub.github.io/LightsAutoSequencer/tutorial.html)
 (`tutorial.html`), or press **Show me around** in the app for a guided tour.
 
+**Ideas, questions, bugs?** Join the [Discord](https://discord.gg/xjgWweqCEs): #suggestions, #bugs, #help, #show-off.
+
 Two tabs:
 
 1. **Song & words**: beats, sections, energy, drum hits, lyrics with timing, melody.
