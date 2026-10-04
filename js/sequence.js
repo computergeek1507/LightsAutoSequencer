@@ -23,9 +23,10 @@ const Sequencer = (() => {
         { id: 'words', label: 'Each sung word', vocal: true },
         { id: 'leadin', label: 'Build-up: last 2 bars of the part' },
         { id: 'first', label: 'First beat of the part' },
+        { id: 'lastbar', label: 'Last bar of the part' },
     ];
     // Triggers placed from the part itself rather than from song-wide marks.
-    const PART_TRIGGERS = new Set(['leadin', 'first']);
+    const PART_TRIGGERS = new Set(['leadin', 'first', 'lastbar']);
     const EVENTS = TRIGGERS.filter(t => t.id !== 'span');
 
     function marksFor(id, song) {
@@ -55,7 +56,8 @@ const Sequencer = (() => {
     // dip: the part's lights stop that many beats before its end (a held breath
     // before the next part comes in).
     // row = { id, trigger, targets, effect, options, colors, scheme, perModel,
-    //         level (brightness %, default 100), endFade (seconds of fade-out at the end),
+    //         level (brightness %, default 100), endFade / startFade (seconds of fade-out at
+    //         the end / fade-in at the start),
     //         bars: [from, to) bar indexes within the part (a phrase of a long part; default all),
     //         colourBy: 'bar' (hits change colour each bar rather than each hit) }
 
@@ -160,7 +162,8 @@ const Sequencer = (() => {
                     const perModel = isGroup && (row.perModel ?? eff.perModel);
                     const level = row.level != null ? Math.max(0, Math.min(100, row.level)) : 100;
                     const endFade = row.endFade > 0 && n === spans.length - 1 ? Math.min(row.endFade, (eMs - sMs) / 1000) : 0;
-                    place(target, { sMs, eMs, eff, o, colors, pal, index, rowId: row.id, isGroup, perModel, level, endFade }, isEvent ? 1 : 0);
+                    const startFade = row.startFade > 0 && n === 0 ? Math.min(row.startFade, (eMs - sMs) / 1000) : 0;
+                    place(target, { sMs, eMs, eff, o, colors, pal, index, rowId: row.id, isGroup, perModel, level, endFade, startFade }, isEvent ? 1 : 0);
                     count++;
                 }
             });
@@ -177,6 +180,7 @@ const Sequencer = (() => {
         const bars = song.grid.bars.filter(b => b.s >= c.s - 0.05 && b.s < c.e - 0.05);
         if (!bars.length) return [];
         if (trig === 'first') return [{ s: c.s, e: Math.min(c.e, c.s + song.grid.T * 2) }];
+        if (trig === 'lastbar') return [{ s: bars[bars.length - 1].s, e: c.e }];
         const from = bars[Math.max(0, bars.length - 2)].s;
         return from > c.s + 0.05 || bars.length <= 2 ? [{ s: from, e: c.e }] : [];
     }
@@ -281,6 +285,7 @@ const Sequencer = (() => {
                 fx.eff.render(p, fx.perModel ? tgt.NM : N, tmp);
                 let gain = fx.level / 100;
                 if (fx.endFade > 0) gain *= Math.max(0, Math.min(1, (p.dur - p.sec) / fx.endFade));
+                if (fx.startFade > 0) gain *= Math.max(0, Math.min(1, p.sec / fx.startFade));
                 if (gain !== 1) for (let i = 0; i < tmp.length; i++) tmp[i] *= gain;
                 if (!any) { acc.set(tmp); any = true; }
                 else for (let i = 0; i < tmp.length; i++) acc[i] += tmp[i];
@@ -313,6 +318,7 @@ const Sequencer = (() => {
             if (fx.isGroup) s = (fx.perModel ? 'B_CHOICE_BufferStyle=Per Model Default,' : 'B_CHOICE_BufferStyle=Per Preview,') + s;
             if (fx.level !== 100) s += `,C_SLIDER_Brightness=${Math.round(fx.level)}`;
             if (fx.endFade > 0 && !/T_TEXTCTRL_Fadeout=/.test(s)) s += `,T_TEXTCTRL_Fadeout=${fx.endFade.toFixed(2)}`;
+            if (fx.startFade > 0 && !/T_TEXTCTRL_Fadein=/.test(s)) s += `,T_TEXTCTRL_Fadein=${fx.startFade.toFixed(2)}`;
             if (fx.above) s += Effects.ADD;
             if (!dbIdx.has(s)) { dbIdx.set(s, db.length); db.push(s); }
             return dbIdx.get(s);

@@ -212,6 +212,12 @@ hosting account) is the owner's to do; I can prepare everything up to that point
 
 ## Done
 
+- **2026-10-03:** Transitions: every lift no longer goes dark then flashes white. Each lift
+  gets a move (ramp up, sweep in, burst, colour hit in the part's colour, crossfade), never
+  the same twice running; *build & land* (dark, then flash) only for the single biggest
+  lift; big drops crossfade. Cards show "↗ how it comes in"; *Comes in with* changes it
+  (tagged rows, so a new choice cleanly replaces the old). New: row fade-in, *Last bar of
+  the part* trigger.
 - **2026-10-03:** Plan control boxes can be folded (▾) and, once unlocked (*🔒 Layout
   locked*, locked by default), dragged by a ⠿ grip or moved with ↑ ↓; *Reset layout*; all
   remembered. Drag uses pointer events (works with mouse and touch).

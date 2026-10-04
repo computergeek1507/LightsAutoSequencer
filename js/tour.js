@@ -22,7 +22,7 @@
         { tab: 'seq', el: () => $('previewPanel'), need: 'your show', title: 'Your house',
           text: 'The preview plays your lights with the song. Click a prop to see what lights it, drag a box to pick several, and use Line up photo… if the photo sits off the lights.' },
         { tab: 'seq', el: () => $('suggestPlan'), need: 'a song and your show', title: 'Get a starting plan',
-          text: 'Suggest a plan lights every part: steady looks with one or two props on the beat, brighter and fuller when the music is loud, a build-up into each chorus. 🎲 Another idea gives a different one.' },
+          text: 'Suggest a plan lights every part: steady looks with one or two props on the beat, brighter and fuller when the music is loud, and a different transition into each chorus. 🎲 Another idea gives a different one.' },
         { tab: 'seq', el: () => $('ideaSettings'), need: 'a song and your show', title: 'Steer the ideas',
           text: 'Idea settings: Look (feeling, intensity, colours), Props (use some more or less, say what a prop is, leave some out) and How ideas are made. For: picks which parts change.' },
         { tab: 'seq', el: () => $('fitBox'), need: 'a plan', title: 'Fit with the music',

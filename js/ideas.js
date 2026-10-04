@@ -562,6 +562,92 @@ const Ideas = (() => {
 
     // sections: which sections get a new idea (default all); whole: redo the
     // whole-song layer too. Returns only what was asked for.
+    // ---------- transitions between parts ----------
+
+    const TRANSITIONS = [
+        ['cut', 'Straight cut'],
+        ['ramp', 'Ramp up'],
+        ['sweep', 'Sweep in'],
+        ['burst', 'Burst'],
+        ['colourhit', 'Colour hit'],
+        ['crossfade', 'Crossfade'],
+        ['build', 'Build & land (dark, then flash)'],
+    ];
+
+    // The props transitions use: the big ones for ramps and sweeps, the ones
+    // that read as a burst for shockwaves.
+    function transitionProps(show, excluded = new Set()) {
+        const cands = candidates(show, excluded);
+        return {
+            big: ['roof', 'megatree', 'arch'].filter(c => cands.has(c)).map(c => cands.get(c).targets[0]),
+            bursty: ['megatree', 'matrix', 'snowflake', 'star', 'cross'].filter(c => cands.has(c)).map(c => cands.get(c).targets[0]).slice(0, 3),
+        };
+    }
+
+    // How part B comes in after part A. Everything a transition adds is tagged
+    // with B's id, so a new choice first takes the old one away.
+    function applyTransition(plan, song, A, B, move, { props, scheme, rng = Math.random, doA = true, doB = true }) {
+        const ca = plan.sections[A.id], cb = plan.sections[B.id];
+        const tag = B.id;
+        for (const c of [ca, cb]) if (c) {
+            c.rows = c.rows.filter(r => r.tr !== tag);
+            for (const r of c.rows) {
+                if (r.trOut === tag) { delete r.endFade; delete r.trOut; }
+                if (r.trIn === tag) { delete r.startFade; delete r.trIn; }
+            }
+        }
+        if (ca && ca.dipFor === tag) { delete ca.dip; delete ca.dipFor; }
+        if (cb) cb.transition = move;
+        if (move === 'cut') return;
+        const sa = doA && ca, sb = doB && cb;
+        const barLen = song.grid.T * (song.grid.meter || 4);
+        const lit = () => [...new Set((cb ? cb.rows : []).filter(r => r.trigger === 'span' && r.effect !== 'faces').flatMap(r => r.targets))];
+        const colour = (() => {
+            const n = new Map();
+            for (const r of (cb ? cb.rows : [])) if (r.trigger === 'span' && r.colors && r.colors[0]) n.set(r.colors[0], (n.get(r.colors[0]) || 0) + 1);
+            return [...n].sort((x, y) => y[1] - x[1]).map(x => x[0])[0] || scheme.colors[0];
+        })();
+        const add = (c, row) => c.rows.push({ id: Sequencer.newId(), tr: tag, scheme: 'custom', options: {}, ...row });
+        switch (move) {
+            case 'build':
+                // a held breath, then the whole house lands together
+                if (sa) {
+                    ca.dip = 1.5; ca.dipFor = tag;
+                    if (props.big.length) add(ca, { trigger: 'leadin', targets: props.big, effect: 'on', options: { start: 5, end: 100 }, colors: [colour] });
+                }
+                if (sb && lit().length) add(cb, { trigger: 'first', targets: lit(), effect: 'pulse', colors: [scheme.colors[2] || '#FFFFFF'] });
+                break;
+            case 'ramp':
+                // the big props brighten over the last two bars; no gap
+                if (sa && props.big.length) add(ca, { trigger: 'leadin', targets: props.big, effect: 'on', options: { start: 10, end: 100 }, colors: [colour] });
+                break;
+            case 'sweep':
+                // a chase runs across the house in the last bar
+                if (sa && props.big.length) add(ca, { trigger: 'lastbar', targets: props.big, effect: 'chase', options: { direction: pick(rng, ['Left-Right', 'Right-Left', 'From Middle']), chases: 1, rotations: 1, size: 40 }, colors: [colour] });
+                break;
+            case 'burst':
+                // a shockwave from the centre props as the part starts
+                if (sb && props.bursty.length) add(cb, { trigger: 'first', targets: props.bursty, effect: 'shockwave', options: { width: 40 }, colors: [colour] });
+                break;
+            case 'colourhit':
+                // the new part lands with a flash in its own colour
+                if (sb && lit().length) add(cb, { trigger: 'first', targets: lit(), effect: 'pulse', colors: [colour], level: 70 });
+                break;
+            case 'crossfade': {
+                // one look melts into the next over about a bar
+                if (sa) {
+                    const nb = barsOf(song, A).length, len = Math.min(barLen, (A.e - A.s) / 3);
+                    for (const r of ca.rows) if (r.trigger === 'span' && r.effect !== 'faces' && (!r.bars || r.bars[1] >= nb) && !(r.endFade > 0)) { r.endFade = len; r.trOut = tag; }
+                }
+                if (sb) {
+                    const len = Math.min(barLen, (B.e - B.s) / 3);
+                    for (const r of cb.rows) if (r.trigger === 'span' && r.effect !== 'faces' && (!r.bars || r.bars[0] === 0)) { r.startFade = len; r.trIn = tag; }
+                }
+                break;
+            }
+        }
+    }
+
     function planIdea(song, show, { seed, scheme, alike, pools, sections, whole = true, feel = 'auto', intensity = null, exclude = [], mix = null, matrixWords = false, phrased = true }) {
         const rng = rngFrom(seed);
         const plan = Sequencer.emptyPlan();
@@ -603,24 +689,37 @@ const Ideas = (() => {
             });
             plan.sections[s.id] = { rows, pool: pool || [] };
         }
-        // builds and drops: ramp up before a part that lifts, flash on its first beat
+        // Transitions between parts. A lift (into a chorus, or a big jump in
+        // loudness) gets one of several moves, never the same twice running; the
+        // dark-then-flash "build and land" is kept for the single biggest lift.
+        // A big drop crossfades down.
         if (intensity == null) {
             const doing = new Set(todo.map(s => s.id));
-            const big = ['roof', 'megatree', 'arch'].filter(c => cands.has(c)).map(c => cands.get(c).targets[0]);
+            const trng = rngFrom(seed ^ 0x2545f491);
+            const props = transitionProps(show, excluded);
+            const pairs = [];
             for (let i = 0; i + 1 < all.length; i++) {
-                const a = all[i], b = all[i + 1];
-                const ea = energies.get(a.id), eb = energies.get(b.id);
-                const lifts = eb > 0.5 && (eb - ea > 0.2 || (LIFT.test(b.name) && !LIFT.test(a.name) && eb >= ea));
-                if (!lifts) continue;
-                // a held breath: the part goes dark for its last 1.5 beats
-                if (doing.has(a.id)) plan.sections[a.id].dip = 1.5;
-                if (doing.has(a.id) && big.length) {
-                    plan.sections[a.id].rows.push({ id: Sequencer.newId(), trigger: 'leadin', targets: big, effect: 'on', options: { start: 5, end: 100 }, colors: [scheme.colors[0]], scheme: 'custom' });
+                const A = all[i], B = all[i + 1];
+                const ea = energies.get(A.id), eb = energies.get(B.id);
+                const lift = eb > 0.5 && (eb - ea > 0.2 || (LIFT.test(B.name) && !LIFT.test(A.name) && eb >= ea));
+                if (lift) pairs.push({ A, B, jump: eb - ea, kind: 'lift' });
+                else if (ea - eb > 0.35) pairs.push({ A, B, jump: eb - ea, kind: 'drop' });
+            }
+            const lifts = pairs.filter(p => p.kind === 'lift');
+            const biggest = lifts.length ? lifts.reduce((x, y) => (y.jump > x.jump ? y : x)) : null;
+            let prev = null;
+            for (const p of pairs) {
+                if (!doing.has(p.A.id) && !doing.has(p.B.id)) continue;
+                let move;
+                if (p.kind === 'drop') move = 'crossfade';
+                else if (p === biggest && p.jump >= 0.3) move = 'build';
+                else {
+                    const opts = p.jump >= 0.35 ? ['ramp', 'sweep', 'burst'] : p.jump >= 0.2 ? ['ramp', 'sweep', 'burst', 'colourhit'] : ['crossfade', 'colourhit', 'sweep', 'ramp'];
+                    const fresh = opts.filter(o => o !== prev && (o !== 'burst' || props.bursty.length) && ((o !== 'ramp' && o !== 'sweep') || props.big.length));
+                    move = pick(trng, fresh.length ? fresh : opts);
                 }
-                if (doing.has(b.id)) {
-                    const lit = [...new Set(plan.sections[b.id].rows.filter(r => r.trigger === 'span').flatMap(r => r.targets))];
-                    if (lit.length) plan.sections[b.id].rows.push({ id: Sequencer.newId(), trigger: 'first', targets: lit, effect: 'pulse', options: {}, colors: ['#FFFFFF'], scheme: 'white' });
-                }
+                prev = move;
+                applyTransition(plan, song, p.A, p.B, move, { props, scheme, rng: trng, doA: doing.has(p.A.id), doB: doing.has(p.B.id) });
             }
         }
         // the ending follows the music: if it fades, the last part's lights fade with it
@@ -647,5 +746,5 @@ const Ideas = (() => {
         return fade >= 1.5 ? Math.round(fade * 10) / 10 : 0;
     }
 
-    return { guessClass, CLASS_LABELS, sectionIdea, partIdea, planIdea, partEnergies, phrases, classify, candidates, mixEntries, FEELS, INTENSITIES, LEVELS };
+    return { TRANSITIONS, applyTransition, transitionProps, guessClass, CLASS_LABELS, sectionIdea, partIdea, planIdea, partEnergies, phrases, classify, candidates, mixEntries, FEELS, INTENSITIES, LEVELS };
 })();

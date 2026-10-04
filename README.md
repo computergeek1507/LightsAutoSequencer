@@ -146,9 +146,10 @@ Ctrl+Z undoes. Edits are kept per song (keyed by word position + word), survive
   clicking a prop on the house can also add it to or take it off that list.
 - Ideas follow the music: each part's loudness sets how many props are lit and how bright;
   repeats share effects but scale with their loudness; one or two prop types carry the
-  beat over a dimmer base, and loud parts add a whole-house hit. Before a part that lifts,
-  the house builds up, holds its breath for 1.5 beats and lands with a flash; the lights
-  fade when the song does.
+  beat over a dimmer base, and loud parts add a whole-house hit. Each lift gets its own
+  transition (ramp up, sweep in, burst, colour hit or crossfade, never the same twice running;
+  the dark-then-flash build & land only for the biggest lift); big drops crossfade. Each part's
+  *Comes in with* menu changes it. The lights fade when the song does.
 - *Fit with the music* under the plan scores it (0-100): does the house follow loudness,
   does the beat show, are loud parts brighter. *Try 4 ideas, keep the best fit* makes four
   ideas and keeps the best one. Light rows have *Brightness %* and, for steady rows,

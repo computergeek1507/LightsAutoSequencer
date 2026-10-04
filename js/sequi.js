@@ -1080,6 +1080,7 @@
               <label class="idea-pick" title="Ticked: 🎲 Another idea changes this part (rows you untick inside it are kept)"><input type="checkbox" class="ipick" ${ideaPicked(isWhole ? 'whole' : sec.id) ? 'checked' : ''}> 🎲</label>
               <div class="sec-title">
                 <b>${esc(sec.name)}</b>
+                ${!isWhole && c.transition && c.transition !== 'cut' ? `<span class="tr-chip" title="How this part comes in (change it inside the part)">↗ ${esc((Ideas.TRANSITIONS.find(t => t[0] === c.transition) || [, c.transition])[1].replace(/ \(.*\)$/, ''))}</span>` : ''}
                 <span class="muted">${isWhole ? 'under every section' : `${fmt(sec.s)}–${fmt(sec.e)}${sec.bars ? ` · ${sec.bars} bars` : ''}`}</span>
                 ${energy}
               </div>
@@ -1134,6 +1135,22 @@
         foot.innerHTML = `<button type="button" class="btn small add">+ Add lights</button>${!isWhole ? `<button type="button" class="btn small splitHere" title="Split this section where the song is now">Split at playhead</button><button type="button" class="btn small ren">Rename</button>` : ''}${c.rows.length ? '<button type="button" class="btn small clearSec">Clear</button>' : ''}${!isWhole ? `<label class="chk small" title="The lights of this part stop 1.5 beats before it ends, so the next part lands on a dark house"><input type="checkbox" class="dipChk" ${c.dip > 0 ? 'checked' : ''}> Hold a breath at the end</label>` : ''}`;
         const dip = foot.querySelector('.dipChk');
         if (dip) dip.addEventListener('change', () => commit(() => { if (dip.checked) c.dip = 1.5; else delete c.dip; }));
+        // how this part comes in from the one before it
+        const songNow = XLWeb.song();
+        const idx = !isWhole && songNow ? songNow.sections.findIndex(x => x.id === sec.id) : -1;
+        if (idx > 0) {
+            const prevSec = songNow.sections[idx - 1];
+            const cur = c.transition || 'cut';
+            foot.insertAdjacentHTML('beforeend', `<label class="small tr-pick" title="How this part takes over from ${esc(prevSec.name)}">Comes in with <select class="trSel">${Ideas.TRANSITIONS.map(([id, label]) => `<option value="${id}" ${id === cur ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>`);
+            foot.querySelector('.trSel').addEventListener('change', e => {
+                const move = e.target.value;
+                commit(() => {
+                    container(prevSec.id); container(sec.id);
+                    Ideas.applyTransition(S.plan, songNow, prevSec, sec, move, { props: Ideas.transitionProps(S.show), scheme: ideaScheme() });
+                });
+                setPlanStatus(`${sec.name} now comes in with: ${(Ideas.TRANSITIONS.find(t => t[0] === move) || [])[1]}.`);
+            });
+        }
         foot.querySelector('.add').addEventListener('click', () => {
             const r = newRow();
             S.rowOpen.add(r.id);
