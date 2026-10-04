@@ -3,11 +3,37 @@
 One running list for the web sequencer. New ideas get added here; when one is built it
 moves to **Done** with the date.
 
+## Where things stand (2026-10-04)
+
+- **Live:** https://socman1984-hub.github.io/LightsAutoSequencer/ (GitHub Pages, public repo
+  `socman1984-hub/LightsAutoSequencer`, GPLv3). Guide: `tutorial.html`. Feedback: Discord
+  https://discord.gg/xjgWweqCEs. Posted to the xLights Facebook group; first testers replied.
+- **Built but not on the website yet** (committed locally, waiting for "push it"): the File
+  menu and Export dialog, ⧉ pop-out preview, moving heads (effect, beams, fixtures, the Moving
+  heads box), the step tracker, layered looks on matrices and big singing props, image props.
+- **Needs checking in a real browser:** the pop-out window (this test browser blocks new
+  windows), Chrome's *Allow on every visit* prompt, the native open/save dialogs.
+
 ## Open ideas
 
-- **Pop-out preview.** Open the preview in its own window, synced to playback, for a
-  second monitor. (Left over from the "edit while watching" list; the other five are
-  built.)
+### Waiting for a decision
+
+- **Community effect presets** (tester idea; plan below under *Effect presets*).
+- **Erase the owner's first name from the repo's history** (it's gone from the current files;
+  two old versions of IDEAS.md still have it). Needs a forced history rewrite; best done before
+  more people copy the repo.
+
+### Lights and looks (from the reviews below)
+
+- House style per song (*matched to the prop* or *one picture across the house*).
+- Props in a row travel: per-cane / per-arch sweeps, spinners counter-rotating.
+- Vocal accents: whole-house hits on the ~9 strongest sung moments.
+- Phrase changes every 4 or 8 bars, and a varied last chorus.
+- Follow the voice (background dims while singing).
+- Colour from the feeling (scheme picked from the song's mood).
+- Grow the fit score (matrix share, colour change, vocal accents, phrase variation).
+- Moving heads: hits on the beat (dimmer pulses or snaps to a new position), and an option for
+  heads that hang upside down (the preview assumes tilt 0 = pointing straight up).
 
 ### Using the empty space under the preview (wide screens)
 
@@ -32,7 +58,8 @@ Ideas for that space, roughly in order of usefulness:
 xLights: see the section's effects over time and move through the song fast. 3 fits
 under them if room remains.
 
-**Status:** 1 and 2 built; 3–6 open.
+**Status:** 1 and 2 built; 3–6 open. (The pop-out preview from the same list was built
+2026-10-04.)
 
 ## Making the lights fit the music (review of 2026-10-03)
 
@@ -179,7 +206,8 @@ presets saved, so they'd come as shared packs. Plan:
 - Layout scenery: picture objects (e.g. "Night Sky.png") and 3D house meshes (`.obj`) in
   xLights' 3D layouts aren't drawn in the preview. Pictures would be easy (placed like the
   photo); a mesh could be drawn as a flat silhouette from the front.
-- DMX fixtures (moving heads, floods) still show as one dot.
+- DMX: moving heads are supported now (2026-10-04). Other DMX fixtures (floods, servos,
+  skulls, general DMX) still show as one dot and get no effects.
 
 ## Going public (putting it online for everyone)
 
@@ -216,8 +244,12 @@ bandwidth.
 8. **Optional:** host the models ourselves (Cloudflare R2) if Hugging Face rate-limits
    heavy use; that adds a small bandwidth cost.
 
-**Status:** waiting for the owner's go-ahead. Publishing itself (creating the repo and the
-hosting account) is the owner's to do; I can prepare everything up to that point.
+**Status (2026-10-04): published.** Live on GitHub Pages (`coi.js` supplies the isolation
+headers there; `_headers` / `netlify.toml` cover other hosts), GPLv3 repo, named *Lights Auto
+Sequencer* "for xLights", footer and guide say nothing is uploaded. Of the list above: 1 done
+except other DMX fixtures; 2, 3 done; 4 said on the page, not yet tested in Firefox/Safari;
+5 mostly done; 6 partly done (vendor layouts in the owner's folders, one tester's packaged
+show); 7 the test hooks stay on purpose (harmless, used for testing); 8 not needed so far.
 
 ## Known weak spots
 
@@ -228,7 +260,14 @@ hosting account) is the owner's to do; I can prepare everything up to that point
 - In the preview, chases and marquees have the right pattern but can be out of step with
   xLights' own render (76–82% of bulbs match overall).
 - Not exercised by testing: the browser's native folder picker, *Save into show
-  folder*, and the native *Save as* dialog for projects.
+  folder*, the native *Save as* / open dialogs for projects, Chrome's *Allow on every visit*,
+  and the pop-out window (tested only with a stand-in inside the page).
+- Moving heads: the preview's beam direction assumes tilt 0 points straight up; hanging or
+  sideways-mounted heads will look different in xLights. Pan/tilt ranges come from each
+  fixture's own motor settings in xLights, so degrees in the app match xLights' Moving Head
+  effect, not necessarily the real fixture.
+- Ideas never put moving heads in a group effect, but a user-made group that mixes heads and
+  ordinary props would send ordinary effects to the heads' channels.
 - The *Feeling* and *Intensity* settings shape new ideas only; they don't change lights
   already planned.
 - The fit score measures brightness, beat and loudness only. It can't judge colour, taste
